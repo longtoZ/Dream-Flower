@@ -3,3 +3,6 @@
 img/
 res/
 .ipynb_checkpoints
+.env
+dataset/
+label_images/
