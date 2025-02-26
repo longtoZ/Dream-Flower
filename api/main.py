@@ -1,9 +1,15 @@
 import os
+import io
+import uuid
+import base64
+from pdf2image import convert_from_path
+import numpy as np
 import cv2
 import torch
-from flask import Flask, request, jsonify
+from flask import Flask, request, Response, jsonify
 from flask_restful import Api, Resource
-from ultralytics import YOLO
+from flask_cors import CORS
+# from ultralytics import YOLO
 
 # -------------------- Configuration --------------------
 
@@ -22,6 +28,9 @@ CLASS_NAMES = [
 app = Flask(__name__)
 api = Api(app)
 
+# Enable CORS
+CORS(app)
+
 # Configure app
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["ALLOWED_EXTENSIONS"] = ALLOWED_EXTENSIONS
@@ -31,13 +40,13 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # -------------------- Model Initialization --------------------
 
-# Load the pretrained YOLO model
-MODEL_PATH = r"C:\Users\VICTUS\Documents\OMR project\model_training\runs\detect\train4\weights\best.pt"
-model = YOLO(MODEL_PATH)
+# # Load the pretrained YOLO model
+# MODEL_PATH = r"C:\Users\VICTUS\Documents\OMR project\model_training\runs\detect\train4\weights\best.pt"
+# model = YOLO(MODEL_PATH)
 
-# Set device (GPU if available, otherwise CPU)
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model.to(device)
+# # Set device (GPU if available, otherwise CPU)
+# device = "cuda" if torch.cuda.is_available() else "cpu"
+# model.to(device)
 
 # -------------------- Utility Functions --------------------
 
@@ -49,13 +58,8 @@ def allowed_file(filename: str) -> bool:
     """
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def extract_boxes(image_path: str) -> list:
-    """
-    Extract bounding boxes from an image using the pretrained YOLO model.
-    :param image_path: Path to the input image.
-    :return: A list of bounding boxes categorized by class.
-    """
-    image = cv2.imread(image_path)
+def extract_boxes(image_io: io.BytesIO) -> list:
+    image = cv2.imdecode(np.frombuffer(image_io.getvalue(), np.uint8), cv2.IMREAD_COLOR)
     results = model(image)
 
     # Initialize a list to hold bounding boxes for each class
@@ -72,36 +76,54 @@ def extract_boxes(image_path: str) -> list:
 
 # -------------------- API Endpoints --------------------
 
+uploaded_filename = ""
+
 class ExtractSymbol(Resource):
     def post(self):
-        """
-        API endpoint to receive an image, process it, and return detected bounding boxes.
-        """
-        if "image" not in request.files:
-            return {"error": "No image provided"}, 400
+        global uploaded_filename
+        if "file" not in request.files:
+            return {"error": "No file part"}, 400
+        
+        file = request.files["file"]
 
-        file = request.files["image"]
+        if file.filename == "" or not file.filename.endswith(".pdf"):
+            return {"error": "No selected file or invalid file type"}, 400
+        
+        uploaded_filename = f"{str(uuid.uuid4())}_{file.filename}"
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], uploaded_filename))
 
-        if not file.filename:
-            return {"error": "No selected file"}, 400
+        return {"message": "File uploaded successfully", "filename": uploaded_filename}, 200
 
-        if not allowed_file(file.filename):
-            return {"error": "Invalid file type"}, 400
+class StreamImages(Resource):
+    def get(self):
+        uploaded_filepath = os.path.join(app.config["UPLOAD_FOLDER"], uploaded_filename)
 
-        # Save the uploaded file
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
-        file.save(filepath)
+        # Wait for the file to be uploaded
+        while not os.path.exists(uploaded_filepath):
+            pass
 
-        # Extract symbols from the image
-        boxes = extract_boxes(filepath)
+        def generate():
+            # Convert PDF to images
+            images = convert_from_path(uploaded_filepath, dpi=300, poppler_path="./poppler-24.08.0/Library/bin")
 
-        # Delete the image after processing
-        os.remove(filepath)
+            # Stream each image as a response
+            for i, img in enumerate(images):
+                img_io = io.BytesIO()
+                img.save(img_io, "PNG")
+                img_base64 = base64.b64encode(img_io.getvalue()).decode("utf-8")
+                print(f"Image {i + 1} sent")
 
-        return jsonify({"boxes": boxes, "filename": file.filename})
+                yield f"data:{img_base64}\n\n"
+            
+            print("All images sent")
+
+            yield "data:done\n\n"
+    
+        return Response(generate(), mimetype="text/event-stream")
 
 # Add resource to API
 api.add_resource(ExtractSymbol, "/extract")
+api.add_resource(StreamImages, "/stream")
 
 # -------------------- Run Application --------------------
 
