@@ -2,20 +2,21 @@ import os
 import io
 import uuid
 import base64
+import json
 from pdf2image import convert_from_path
 import numpy as np
+from PIL import Image
 import cv2
 import torch
 from flask import Flask, request, Response, jsonify
 from flask_restful import Api, Resource
 from flask_cors import CORS
-# from ultralytics import YOLO
+from ultralytics import YOLO
 
 # -------------------- Configuration --------------------
 
 # Constants
 UPLOAD_FOLDER = "uploads"
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 NUMBER_OF_CLASSES = 20
 CLASS_NAMES = [
     "barline", "bass_clef", "decrescendo", "dotted_note", "eight_beam",
@@ -33,30 +34,72 @@ CORS(app)
 
 # Configure app
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["ALLOWED_EXTENSIONS"] = ALLOWED_EXTENSIONS
 
 # Ensure the upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # -------------------- Model Initialization --------------------
 
-# # Load the pretrained YOLO model
-# MODEL_PATH = r"C:\Users\VICTUS\Documents\OMR project\model_training\runs\detect\train4\weights\best.pt"
-# model = YOLO(MODEL_PATH)
+# Load the pretrained YOLO model
+MODEL_PATH = r"C:\Users\VICTUS\Documents\OMR project\model_training\runs\detect\train4\weights\best.pt"
+model = YOLO(MODEL_PATH)
 
-# # Set device (GPU if available, otherwise CPU)
-# device = "cuda" if torch.cuda.is_available() else "cpu"
-# model.to(device)
+# Set device (GPU if available, otherwise CPU)
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model.to(device)
 
 # -------------------- Utility Functions --------------------
 
-def allowed_file(filename: str) -> bool:
-    """
-    Check if a file has an allowed extension.
-    :param filename: The name of the file.
-    :return: True if allowed, False otherwise.
-    """
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+def separate_staff_zones(images_io: io.BytesIO) -> list:
+    original_image = cv2.imdecode(np.frombuffer(images_io.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+    modified_image = original_image.copy()
+    height, width, channels = modified_image.shape
+
+    # Apply grayscale, Gaussian blur, thresholding and morphological operations to group staff zones
+    gray = cv2.cvtColor(modified_image, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 10))
+    dilate = cv2.dilate(thresh, kernel, iterations=1)
+
+    # Find contours and filter for staff zones
+    cnts = cv2.findContours(dilate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+    cnts = sorted(cnts, key=lambda x : cv2.boundingRect(x)[1]) # Sort based on vertical order
+
+    # Extract staff zones by filtering contours whose width is greater than 80% of the image width
+    staff_zones = []
+
+    for c in cnts:
+        x, y, w, h = cv2.boundingRect(c)
+        
+        if w > width*0.8:
+            roi = original_image[y:y+h, x:x+w]
+            staff_zones.append(roi)
+        
+    return staff_zones
+
+def remove_staff_lines(zone: np.ndarray) -> np.ndarray:
+    # Convert image to grayscale and apply thresholding
+    gray = cv2.cvtColor(zone, cv2.COLOR_BGR2GRAY)
+    vertical = cv2.threshold(gray, 210, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
+    # Create structure element for extracting vertical lines through morphology operations
+    verticalStructure = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 4))
+    
+    # Apply morphology operations
+    vertical = cv2.erode(vertical, verticalStructure)
+    vertical = cv2.dilate(vertical, verticalStructure)
+
+    # Reconstruct noteheads and beams
+    notehead_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
+    reconstructed = cv2.dilate(vertical, notehead_kernel, iterations=1)
+
+    # Invert the image to origin
+    inverted = cv2.bitwise_not(reconstructed)
+
+    return inverted
+
 
 def extract_boxes(image_io: io.BytesIO) -> list:
     image = cv2.imdecode(np.frombuffer(image_io.getvalue(), np.uint8), cv2.IMREAD_COLOR)
@@ -89,6 +132,7 @@ class ExtractSymbol(Resource):
         if file.filename == "" or not file.filename.endswith(".pdf"):
             return {"error": "No selected file or invalid file type"}, 400
         
+        # Generate a unique filename and save the file
         uploaded_filename = f"{str(uuid.uuid4())}_{file.filename}"
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], uploaded_filename))
 
@@ -96,6 +140,7 @@ class ExtractSymbol(Resource):
 
 class StreamImages(Resource):
     def get(self):
+        global uploaded_filename
         uploaded_filepath = os.path.join(app.config["UPLOAD_FOLDER"], uploaded_filename)
 
         # Wait for the file to be uploaded
@@ -110,13 +155,37 @@ class StreamImages(Resource):
             for i, img in enumerate(images):
                 img_io = io.BytesIO()
                 img.save(img_io, "PNG")
-                img_base64 = base64.b64encode(img_io.getvalue()).decode("utf-8")
-                print(f"Image {i + 1} sent")
 
-                yield f"data:{img_base64}\n\n"
+                # Separate staff zones and detect symbols
+                staff_zones = separate_staff_zones(img_io)
+
+                for j, zone in enumerate(staff_zones):
+                    # Remove staff lines from the zone
+                    zone_no_lines = remove_staff_lines(zone)
+
+                    # Convert Numpy array to image
+                    zone_image = Image.fromarray(cv2.cvtColor(zone_no_lines, cv2.COLOR_BGR2RGB))
+
+                    # Save image to BytesIO object
+                    zone_io = io.BytesIO()
+                    zone_image.save(zone_io, "PNG")
+
+                    # Encode image to base64
+                    zone_base64 = base64.b64encode(zone_io.getvalue()).decode("utf-8")
+
+                    # Extract bounding boxes from image
+                    response = {
+                        "filename": uploaded_filename,
+                        "page": i + 1,
+                        "zone": j + 1,
+                        "image": zone_base64,
+                        "boxes": extract_boxes(zone_io)
+                    }
+
+                    print(f"Image {i + 1}, Zone {j + 1} sent")
+                    yield f"data:{json.dumps(response)}\n\n"
             
             print("All images sent")
-
             yield "data:done\n\n"
     
         return Response(generate(), mimetype="text/event-stream")

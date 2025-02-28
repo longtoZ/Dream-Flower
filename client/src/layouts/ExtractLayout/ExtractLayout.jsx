@@ -1,4 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
+import { v4 as uuidv4 } from 'uuid';
+import ImageCard from './components/ImageCard';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 const ExtractLayout = () => {
 	const [file, setFile] = useState(null);
@@ -9,6 +12,16 @@ const ExtractLayout = () => {
 	useEffect(() => {
 		console.log(images);
 	}, [images]);
+
+	// Load stored images from session storage on component mount
+	useEffect(() => {
+		const storedImages = window.sessionStorage.getItem("images");
+
+		if (storedImages) {
+			setImages(JSON.parse(storedImages));
+			console.log("Stored images loaded from session storage");
+		}
+	}, []);
 
 	const handleDrop = (e) => {
 		e.preventDefault();
@@ -21,6 +34,7 @@ const ExtractLayout = () => {
 		}
 
 		if (droppedFile) setFile(droppedFile);
+		console.log(droppedFile);
 	}
 
 	const handleSelect = (e) => {
@@ -43,6 +57,10 @@ const ExtractLayout = () => {
 		const formData = new FormData();
 		formData.append("file", file);
 
+		// Reset images
+		setImages([]);
+		setLoading(true);
+
 		try {
 			// Upload PDF file to server
 			const response = await fetch("http://127.0.0.1:5000/extract", {
@@ -62,36 +80,54 @@ const ExtractLayout = () => {
 
 				if (e.data === "done") {
 					eventSource.current.close();
+					setLoading(false);
 				} else {
-					setImages((prevImages) => [...prevImages, e.data]);
+					setImages((prevImages) => {
+						const updatedImages = [...prevImages, JSON.parse(e.data)];
+						
+						// Store images in session storage
+						window.sessionStorage.setItem("images", JSON.stringify(updatedImages));
+						console.log("Images stored in session storage");
+
+						return updatedImages;
+					});
 				}
 			}
 
 			eventSource.current.onerror = (e) => {
 				console.error(e);
 				eventSource.current.close();
+				setLoading(false);
 			}
 		} catch (error) {
 			console.error(error);
 		}
 
+		setLoading(false);
+
 	}
 
 	return (
-		<div className="w-full px-[10%]">
-			<div  onDrop={handleDrop} onDragOver={handleDragOver} className="border border-zinc-800 mt-[100px] p-6 rounded-md flex items-center justify-center flex-col cursor-pointer">
-				<h3>Drag and drop your file here to upload</h3>
+		<div className="w-full px-[10%] py-10">
+			<div onDrop={handleDrop} onDragOver={handleDragOver} className="border mt-[100px] h-60 p-6 rounded-md flex items-center justify-center flex-col cursor-pointer bg-secondary border-dashed border-tertiary border-2">
+				<h3 className="opacity-30">
+					Drag and drop your file here to upload
+				</h3>
+				<CloudUploadIcon className="text-white opacity-30 mt-4" style={{fontSize: "3.5rem"}}/>
 
 				<input type="file" accept="application/pdf" className="hidden" onChange={handleSelect}/>
 			</div>
 
-			<button onClick={handleUpload} className="mt-4 bg-zinc-500 text-white px-4 py-2 rounded-md">
+			<button onClick={handleUpload} className="mt-4 float-button">
 				Upload File
 			</button>
 
-			{images.map((imageData, index) => (
-				<img key={index} src={`data:image/png;base64,${imageData}`} alt={`Image ${index + 1}`} />
-			))}
+			<div className='mt-20'></div>
+			<div className='grid grid-cols-4 gap-4'>
+				{images.map((imageData, index) => (
+					<ImageCard key={index} filename={imageData.filename} page={imageData.page} zone={imageData.zone} data={imageData.image} boxes={imageData.boxes}/>
+				))}
+			</div>
 		</div>
   	)
 }

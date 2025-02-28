@@ -1,1 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap');
 @import "tailwindcss";
+
+@theme {
+    --color-primary: #2C2F38;
+    --color-secondary: #1d2029;
+    --color-tertiary: #30323b;
+}
+
+:root {
+    --primary-color: #2C2F38;
+    --secondary-color: #1d2029;
+    --tertiary-color: #30323b;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+    background: #14181f;
+    font-family: 'Fira Code', monospace;
+    color: #fff;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.float-button {
+    background-color: #2C2F38;
+    background-image: linear-gradient(180deg, #2C2F38, #1d2029);
+    color: #fff;
+    border: 2px solid #282a32;
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 2px 2px 15px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+.outline-button {
+    background-color: transparent;
+    color: #fff;
+    border: 2px solid #30323b;
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+}
