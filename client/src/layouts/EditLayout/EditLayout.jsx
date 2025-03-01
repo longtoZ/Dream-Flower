@@ -83,27 +83,41 @@ const EditLayout = () => {
 
 	// Zoom in
 	const handleZoomIn = () => {
-		const offsetFactorX = Math.abs(startPos.x) * 0.025;
-		const offsetFactorY = Math.abs(startPos.y) * 0.025;
-		setScale((scale) => Math.min(scale + 0.05, 2));
+		const canvas = canvasRef.current;
+        const oldScale = scale;
+        const newScale = Math.min(scale + 0.05, 2);
+        setScale(newScale);
 
-		// Adjust the starting position to zoom in on the center of the image
-		setStartPos((startPos) => ({
-			x: startPos.x - offsetFactorX,
-			y: startPos.y - offsetFactorY,
-		}));
+        // Calculate the center of the canvas
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        // Calculate the change in scale
+        const scaleChange = newScale - oldScale;
+
+        // Adjust the starting position to zoom in on the center
+		// new_start_pos = old_start_pos - (center_pos - old_start_pos) * scale_change / new_scale
+        setStartPos((prevStartPos) => ({
+            x: prevStartPos.x - (centerX - prevStartPos.x) * scaleChange / newScale,
+            y: prevStartPos.y - (centerY - prevStartPos.y) * scaleChange / newScale,
+        }));
 	}
 
 	// Zoom out
 	const handleZoomOut = () => {
-		const offsetFactorX = Math.abs(startPos.x) * 0.025;
-		const offsetFactorY = Math.abs(startPos.y) * 0.025;
-		setScale((scale) => Math.max(scale - 0.05, 0.1));
-
-		// Adjust the starting position to zoom out from the center of the image
-		setStartPos((startPos) => ({
-			x: startPos.x + offsetFactorX,
-			y: startPos.y + offsetFactorY,
+		const canvas = canvasRef.current;
+		const oldScale = scale;
+		const newScale = Math.max(scale - 0.05, 0.1); // Prevent going below a minimum scale (e.g., 0.1)
+		setScale(newScale);
+	  
+		const centerX = canvas.width / 2;
+		const centerY = canvas.height / 2;
+	  
+		const scaleChange = newScale - oldScale;
+	  
+		setStartPos((prevStartPos) => ({
+			x: prevStartPos.x - (centerX - prevStartPos.x) * scaleChange / newScale,
+			y: prevStartPos.y - (centerY - prevStartPos.y) * scaleChange / newScale,
 		}));
 	}
 
@@ -139,14 +153,14 @@ const EditLayout = () => {
 		setAnchor({
 			x: coords.x,
 			y: coords.y,
-		})
+		});
 	}
 
 	const handleMouseMove = (e) => {
 		if (!draggingRef.current) return;
 		const canvasRect = canvasRef.current.getBoundingClientRect();
 		const coords = getRelativeCoords(e);
-		console.log(coords.x, coords.y, anchor.x, anchor.y)
+		// console.log(coords.x, coords.y, anchor.x, anchor.y)
 
 		// If the mouse moves outside the canvas, stop dragging
 		if (e.clientX < canvasRect.left || e.clientX > canvasRect.right || e.clientY < canvasRef.current.getBoundingClientRect().top || e.clientY > canvasRef.current.getBoundingClientRect().bottom) {
@@ -168,11 +182,93 @@ const EditLayout = () => {
 		draggingRef.current = false;
 	}
 
+	const drawImageWithFocus = (index, b_x, b_y) => {
+		const canvas = canvasRef.current;
+		const ctx = canvas.getContext('2d');
+
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+		// Adjust the starting position
+		ctx.translate(startPos.x, startPos.y);
+
+		// Set global alpha for dimmed image
+		ctx.globalAlpha = 0.5;
+
+		// Draw the image
+		ctx.drawImage(image, 0, 0, image.width * scale, image.height * scale);
+
+		// Reset global alpha
+		ctx.globalAlpha = 1;
+
+		// Set the color of the box's border
+		ctx.strokeStyle = CLASS_COLORS[index];
+		ctx.lineWidth = 2;
+
+		boxes[index].forEach((box, _) => {
+			const b_width = box[2] - box[0];
+			const b_height = box[3] - box[1];
+			const b_x = box[0];
+			const b_y = box[1];
+
+			// Get the selected zones of the original image but draw with the modified scale
+			ctx.drawImage(image, b_x, b_y, b_width, b_height, b_x * scale, b_y * scale, b_width * scale, b_height * scale);
+			
+			// Draw the box
+			ctx.beginPath();
+			ctx.strokeRect(b_x * scale, b_y * scale, b_width * scale, b_height * scale);
+			ctx.closePath();
+		});
+
+		// Add class name of the selected boxes
+		ctx.font = `${scale * 20}px Arial`;
+		ctx.strokeStyle = CLASS_COLORS[index];
+		ctx.lineWidth = 2;
+		ctx.strokeText(CLASS_NAMES[index], b_x, b_y);
+		ctx.fillStyle = "white";
+		ctx.fillText(CLASS_NAMES[index], b_x, b_y);
+
+		// Reset the starting position
+		ctx.translate(-startPos.x, -startPos.y);
+	}
+
+	const handleMouseClick = (e) => {
+		const coords = getRelativeCoords(e);
+
+		// Adjust the coordinates based on the starting position
+		coords.x = coords.x - startPos.x;
+		coords.y = coords.y - startPos.y;
+
+		let isInsideBox = false;
+
+		// Check if the click is within the bounds of any of the boxes
+		boxes.forEach((symbol, index) => {
+			if (symbol.length > 0) {
+				symbol.forEach((box, _) => {
+					const b_x = box[0] * scale;
+					const b_y = box[1] * scale;
+					const b_width = (box[2] - box[0]) * scale;
+					const b_height = (box[3] - box[1]) * scale;
+
+					if (coords.x >= b_x && coords.x <= b_x + b_width && coords.y >= b_y && coords.y <= b_y + b_height) {
+						drawImageWithFocus(index, b_x, b_y - 5);
+						isInsideBox = true;
+						return;
+					}
+				})
+			}
+
+			if (isInsideBox) return;
+		})
+
+		// If the click is not within any of the boxes, redraw the image
+		if (!isInsideBox) drawImage();
+	}
+
 	return (
   		<div className='flex h-[100vh]'>
-			<div className='w-[15%] border '></div>
+			<div className='w-[15%] border'></div>
 			<div className='w-[85%]'>
-				<canvas ref={canvasRef} className='w-full h-full' onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+				<canvas ref={canvasRef} className='w-full h-full' onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onClick={handleMouseClick}>
 
 				</canvas>
 			</div>
