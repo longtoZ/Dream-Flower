@@ -15,7 +15,7 @@ const ExtractLayout = () => {
 
 	// Load stored images from session storage on component mount
 	useEffect(() => {
-		const storedImages = window.sessionStorage.getItem("images");
+		const storedImages = localStorage.getItem("images");
 
 		if (storedImages) {
 			setImages(JSON.parse(storedImages));
@@ -86,7 +86,7 @@ const ExtractLayout = () => {
 						const updatedImages = [...prevImages, JSON.parse(e.data)];
 						
 						// Store images in session storage
-						window.sessionStorage.setItem("images", JSON.stringify(updatedImages));
+						localStorage.setItem("images", JSON.stringify(updatedImages));
 						console.log("Images stored in session storage");
 
 						return updatedImages;

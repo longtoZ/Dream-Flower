@@ -26,3 +26,17 @@ export const CLASS_COLORS = [
     "rgb(216, 191, 216)",
     "rgb(255, 20, 147)"
 ]
+
+export const CANVAS_MODE = {
+    DRAG: "drag",
+    EDIT: "edit",
+}
+
+export const BOX_ZONE = {
+    TOP_LEFT: "top-left",
+    TOP_RIGHT: "top-right",
+    BOTTOM_RIGHT: "bottom-right",
+    BOTTOM_LEFT: "bottom-left",
+    INSIDE: "inside",
+    OUTSIDE: "outside",
+}
