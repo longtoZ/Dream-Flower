@@ -5,6 +5,8 @@ import { CLASS_NAMES, CLASS_COLORS, CANVAS_MODE, BOX_ZONE } from '../../config/c
 import OpenWithIcon from '@mui/icons-material/OpenWith';
 import CropFreeIcon from '@mui/icons-material/CropFree';
 import SearchIcon from '@mui/icons-material/Search';
+import SaveIcon from '@mui/icons-material/Save';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const EditLayout = () => {
     const canvasRef = useRef(null);
@@ -30,6 +32,9 @@ const EditLayout = () => {
 
 	// Search box operations
 	const [searchText, setSearchText] = useState("");
+	const [currentSymbolBoxes, setCurrentSymbolBoxes] = useState([]);
+	const [listSymbolIndex, setListSymbolIndex] = useState(-1);
+	const noSelectionRef = useRef(null);
 	const searchBoxRef = useRef(null);
 	const symbolListRef = useRef(null);
 
@@ -425,7 +430,10 @@ const EditLayout = () => {
 	// Resize the box when the focusBoxIndex changes
 	useEffect(() => {
 		if (focusBoxIndex.symbolIndex !== -1 && focusBoxIndex.boxIndex !== -1) {
+			noSelectionRef.current.style.display = "none";
 			drawImageWithFocus();
+		} else {
+			noSelectionRef.current.style.display = "flex";
 		}
 	}, [focusBoxIndex]);
 
@@ -452,14 +460,44 @@ const EditLayout = () => {
 		setSearchText(e.target.value.toLowerCase());
 	}
 
-	const handleSymbolFocusOnCanvas = (e) => {
-		// Simulate click on the symbol on canvas
-		console.log(e.target);
-		editModeRef.current.click();
-		const symbolIndex = CLASS_NAMES.indexOf(e.target.textContent);
-		setFocusBoxIndex({symbolIndex: symbolIndex, boxIndex: 0});
-		setSearchText(CLASS_NAMES[symbolIndex]);
-		searchBoxRef.current.value = e.target.textContent;
+	const handleSymbolSelect = (e) => {
+		const listSymbolIndex = parseInt(e.target.getAttribute("symbol-index"));
+		setListSymbolIndex(() => listSymbolIndex);
+		setCurrentSymbolBoxes(() => boxes[focusBoxIndex.symbolIndex]);
+
+		// Update the search text
+		setSearchText(CLASS_NAMES[listSymbolIndex]);
+	}
+
+	const handleSymbolSave = () => {
+		const currentBox = currentSymbolBoxes[focusBoxIndex.boxIndex];
+
+		setBoxes((prevBoxes) => {
+			const updatedBoxes = [...prevBoxes];
+			// Remove the focus box from the current symbol
+			updatedBoxes[focusBoxIndex.symbolIndex] = currentSymbolBoxes.filter((_, index) => index !== focusBoxIndex.boxIndex);
+
+			// Add the focus box to the selected symbol
+			updatedBoxes[listSymbolIndex].push(currentBox);
+
+			return updatedBoxes;
+		});
+
+		// Unfocus all boxes
+		setFocusBoxIndex({symbolIndex: -1, boxIndex: -1});
+		setSearchText("");
+	}
+
+	const handleSymbolDelete = () => {
+		setBoxes((prevBoxes) => {
+			const updatedBoxes = [...prevBoxes];
+			updatedBoxes[focusBoxIndex.symbolIndex] = currentSymbolBoxes.filter((_, index) => index !== focusBoxIndex.boxIndex);
+			return updatedBoxes;
+		});
+
+		// Unfocus all boxes
+		setFocusBoxIndex({symbolIndex: -1, boxIndex: -1});
+		setSearchText("");
 	}
 
 	// Highlight the symbol in the list when the search text changes
@@ -468,7 +506,8 @@ const EditLayout = () => {
 		
 		for (let i = 0; i < symbolListRef.current.children.length; i++) {
 			const child = symbolListRef.current.children[i];
-			console.log(child.children[1].textContent.toLowerCase(), searchText)
+
+			// Highlight the symbol in the list
 			if (child.children[1].textContent === searchText) {
 				child.classList.add("bg-primary");
 				child.classList.add("opacity-[100%]");
@@ -477,21 +516,40 @@ const EditLayout = () => {
 				child.classList.remove("opacity-[100%]");
 			}
 		}
+
+		searchBoxRef.current.value = searchText;
 	}, [searchText]);
 
 	return (
   		<div className='flex h-[100vh] bg-primary'>
-			<div className='w-[16%] bg-secondary'>
-				<div className='mx-auto mt-10 px-1 flex items-center w-[85%] h-8 bg-primary rounded-md text-sm'>
+			<div className='relative w-[16%] bg-secondary'>
+				<div className='p-2 absolute flex flex-col justify-center items-center top-0 left-0 w-full h-full bg-[rgba(0,0,0,0.25)] z-10 backdrop-blur-xs' ref={noSelectionRef}>
+					<h1 className='text-lg'>No box selected</h1>
+					<p className='py-2 text-xs opacity-[40%] text-center'>Click on a box to start editing</p>
+				</div>
+
+				<div className='px-1 flex items-center mx-auto mt-10 w-[85%] h-8 bg-primary rounded-md text-sm'>
 					<SearchIcon className='m-1' style={{fontSize: "1.2rem"}}/>
 					<input type="text" className='text-xs p-1 w-full h-full focus:outline-none' placeholder='Search symbols...' onChange={handleTextChange} ref={searchBoxRef}/>
 				</div>
-				<div className='mx-auto mt-4 w-[85%] flex flex-col overflow-y-scroll h-[80%] scrollbar-hide' ref={symbolListRef}>
-					{CLASS_NAMES.filter((name) => name.includes(searchText)).map((name, index) => (
-						<div className='grid grid-cols-3 items-center opacity-[30%] cursor-pointer hover:opacity-[100%] hover:bg-primary px-1 py-2 rounded-md transition-all duration-100 ease' key={index} style={{gridTemplateColumns: "1.5rem 8.6rem 1rem"}}> 
-							<span className='w-3 h-3 m-1 rounded-[50%]' style={{backgroundColor: CLASS_COLORS[CLASS_NAMES.indexOf(name)]}}></span>
-							<p className='text-xs'>{name}</p>
-							<p className='text-xs'>{boxes[CLASS_NAMES.indexOf(name)]?.length}</p>
+
+				<div className='mx-auto mt-2 flex justify-between w-[85%]'>
+					<div className='w-[48%] bg-transparent rounded-md border border-2 border-primary text-xs text-white p-2 cursor-pointer hover:bg-primary transition-all duration-100 ease' onClick={handleSymbolDelete}>
+						<h1 className='text-center'>Delete</h1>
+					</div>
+					<div className='w-[48%] bg-transparent rounded-md border border-2 border-primary text-xs text-white p-2 cursor-pointer hover:bg-primary transition-all duration-100 ease' onClick={handleSymbolSave}>
+						<h1 className='text-center'>Save</h1>
+					</div>
+
+				</div>
+
+				<h2 className='mt-6 mb-2 mx-[7.5%] text-xs opacity-[30%] mb-1'>Available symbols</h2>
+				<div className='mx-auto w-[85%] flex flex-col overflow-y-scroll h-[80%] scrollbar-hide' ref={symbolListRef}>
+					{CLASS_NAMES.map((name, index) => (
+						<div className={`grid grid-cols-3 items-center opacity-[30%] cursor-pointer hover:opacity-[100%] hover:bg-primary px-1 py-2 rounded-md transition-all duration-100 ease ${name.includes(searchText) ? 'block' : 'hidden'}`} symbol-index={index} key={index} style={{gridTemplateColumns: "1.5rem 8.6rem 1rem"}} onClick={handleSymbolSelect}> 
+							<span className='w-3 h-3 m-1 rounded-[50%] pointer-events-none' style={{backgroundColor: CLASS_COLORS[index]}}></span>
+							<p className='text-xs pointer-events-none'>{name}</p>
+							<p className='text-xs pointer-events-none'>{boxes[index]?.length}</p>
 						</div>
 					))}
 				</div>
