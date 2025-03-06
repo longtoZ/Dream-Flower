@@ -5,8 +5,6 @@ import { CLASS_NAMES, CLASS_COLORS, CANVAS_MODE, BOX_ZONE } from '../../config/c
 import OpenWithIcon from '@mui/icons-material/OpenWith';
 import CropFreeIcon from '@mui/icons-material/CropFree';
 import SearchIcon from '@mui/icons-material/Search';
-import SaveIcon from '@mui/icons-material/Save';
-import DeleteIcon from '@mui/icons-material/Delete';
 
 const EditLayout = () => {
     const canvasRef = useRef(null);
@@ -24,6 +22,7 @@ const EditLayout = () => {
 
 	// Focus box operations
 	const [focusBoxIndex, setFocusBoxIndex] = useState({symbolIndex: -1, boxIndex: -1});
+	const [prevFocusBoxIndex, setPrevFocusBoxIndex] = useState({symbolIndex: 0, boxIndex: 0});
 	const [workingMode, setWorkingMode] = useState(CANVAS_MODE.DRAG);
 	const dragModeRef = useRef(CANVAS_MODE.DRAG);
 	const editModeRef = useRef(CANVAS_MODE.EDIT);
@@ -32,7 +31,7 @@ const EditLayout = () => {
 
 	// Search box operations
 	const [searchText, setSearchText] = useState("");
-	const [currentSymbolBoxes, setCurrentSymbolBoxes] = useState([]);
+	// const [currentSymbolBoxes, setCurrentSymbolBoxes] = useState([]);
 	const [listSymbolIndex, setListSymbolIndex] = useState(-1);
 	const noSelectionRef = useRef(null);
 	const searchBoxRef = useRef(null);
@@ -90,14 +89,14 @@ const EditLayout = () => {
 		canvas.height = parent.getBoundingClientRect().height;
 
         image.src = `data:image/png;base64,${canvasData.image}`;
-        image.alt = `Page ${canvasData.page}`;
+        image.alt = `Page ${canvasData.page} Zone ${canvasData.zone}`;
 
-		setStartPos((startPos) => ({
+		setStartPos(() => ({
 			x: canvas.width / 2 - image.width * scale/2,
 			y: canvas.height / 2 - image.height * scale/2,
 		}));
 
-		setBoxes((boxes) => canvasData.boxes);
+		setBoxes(() => canvasData.boxes);
 
         image.onload = () => {
 			drawImage();
@@ -191,6 +190,7 @@ const EditLayout = () => {
 
 			// Check if the click is within the the focus box
 			if (focusBoxIndex.symbolIndex !== -1 && focusBoxIndex.boxIndex !== -1) {
+				console.log("Click inside box", focusBoxIndex.symbolIndex, focusBoxIndex.boxIndex)
 				const focusBox = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
 				const x1 = focusBox[0] * scale, y1 = focusBox[1] * scale;
 				const x2 = focusBox[2] * scale, y2 = focusBox[1] * scale;
@@ -243,6 +243,7 @@ const EditLayout = () => {
 
 						if (coords.x >= b_x && coords.x <= b_x + b_width && coords.y >= b_y && coords.y <= b_y + b_height) {
 							setFocusBoxIndex({symbolIndex: index, boxIndex: _});
+							setPrevFocusBoxIndex({symbolIndex: index, boxIndex: _});
 							setSearchText(CLASS_NAMES[index]);
 							isInsideBox = true;
 							return;
@@ -256,6 +257,15 @@ const EditLayout = () => {
 			// If the click is not within any of the boxes, redraw the image
 			if (!isInsideBox) {
 				console.log("Click outside box")
+				// Create a new box
+				setAnchor({x: coords.x, y: coords.y});
+
+				// Temporarily set the focus box index to the last box in the current symbol
+				setFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length});
+				setPrevFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length});
+				setSearchText(CLASS_NAMES[prevFocusBoxIndex.symbolIndex]);
+				resizingRef.current = true;
+
 				drawImage();
 			}
 		}
@@ -285,43 +295,68 @@ const EditLayout = () => {
 			setAnchor({ x: coords.x, y: coords.y })
 		} else {
 			if (!resizingRef.current) return;
-			if (boxZone === BOX_ZONE.OUTSIDE) return;
 
 			// Adjust the coordinates based on the starting position
 			coords.x = coords.x - startPos.x;
 			coords.y = coords.y - startPos.y;
 
-			const focusBox = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
+			if (boxZone === BOX_ZONE.OUTSIDE) {
+				// If the box is being created, its corners' coordinate should not be limited to the image boundaries. 
+				const x1 = Math.min(anchor.x, coords.x) / scale;
+				const y1 = Math.min(anchor.y, coords.y) / scale;
+				const x2 = Math.max(anchor.x, coords.x) / scale;
+				const y2 = Math.max(anchor.y, coords.y) / scale;
 
-			// Resize the box. On each corner resizing, the opposite corner should remain fixed
-			if (boxZone === BOX_ZONE.TOP_LEFT) {
-				focusBox[0] = Math.min(focusBox[2], Math.max(0, coords.x / scale));
-				focusBox[1] = Math.min(focusBox[3], Math.max(0, coords.y / scale));
-			} else if (boxZone === BOX_ZONE.TOP_RIGHT) {
-				focusBox[1] = Math.min(focusBox[3], Math.max(0, coords.y / scale));
-				focusBox[2] = Math.max(focusBox[0], Math.min(image.width, coords.x / scale));
-			} else if (boxZone === BOX_ZONE.BOTTOM_RIGHT) {
-				focusBox[2] = Math.max(focusBox[0], Math.min(image.width, coords.x / scale));
-				focusBox[3] = Math.max(focusBox[1], Math.min(image.height, coords.y / scale));
-			} else if (boxZone === BOX_ZONE.BOTTOM_LEFT) {
-				focusBox[0] = Math.min(focusBox[2], Math.max(0, coords.x / scale));
-				focusBox[3] = Math.max(focusBox[1], Math.min(image.height, coords.y / scale));
-			} else if (boxZone === BOX_ZONE.INSIDE) {
-				const b_width = focusBox[2] - focusBox[0];
-				const b_height = focusBox[3] - focusBox[1];
+				const newBox = [x1, y1, x2, y2];
 
-				// Limit the box to the image boundaries so that it keeps the size when touching the edges
-				focusBox[0] = Math.min(image.width - b_width, Math.max(0, coords.x / scale - b_width / 2));
-				focusBox[1] = Math.min(image.height - b_height, Math.max(0, coords.y / scale - b_height / 2));
-				focusBox[2] = Math.min(image.width, Math.max(b_width, coords.x / scale + b_width / 2));
-				focusBox[3] = Math.min(image.height, Math.max(b_height, coords.y / scale + b_height / 2));
+				setBoxes((prevBoxes) => {
+					const updatedBoxes = [...prevBoxes];
+					
+					// If the box was not created, add a new box to the current symbol
+					if (prevFocusBoxIndex.boxIndex === boxes[prevFocusBoxIndex.symbolIndex].length) {
+						updatedBoxes[prevFocusBoxIndex.symbolIndex].push(newBox);
+					} else {
+						// Otherwise, update the box
+						updatedBoxes[prevFocusBoxIndex.symbolIndex][prevFocusBoxIndex.boxIndex] = newBox;
+					}
+					return updatedBoxes;
+				});
+
+			} else {
+				// If the box is being resized, its corners' coordinate should be limited to the image boundaries.
+				const focusBox = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
+
+				// Resize the box. On each corner resizing, the opposite corner should remain fixed
+				if (boxZone === BOX_ZONE.TOP_LEFT) {
+					focusBox[0] = Math.min(focusBox[2], Math.max(0, coords.x / scale));
+					focusBox[1] = Math.min(focusBox[3], Math.max(0, coords.y / scale));
+				} else if (boxZone === BOX_ZONE.TOP_RIGHT) {
+					focusBox[1] = Math.min(focusBox[3], Math.max(0, coords.y / scale));
+					focusBox[2] = Math.max(focusBox[0], Math.min(image.width, coords.x / scale));
+				} else if (boxZone === BOX_ZONE.BOTTOM_RIGHT) {
+					focusBox[2] = Math.max(focusBox[0], Math.min(image.width, coords.x / scale));
+					focusBox[3] = Math.max(focusBox[1], Math.min(image.height, coords.y / scale));
+				} else if (boxZone === BOX_ZONE.BOTTOM_LEFT) {
+					focusBox[0] = Math.min(focusBox[2], Math.max(0, coords.x / scale));
+					focusBox[3] = Math.max(focusBox[1], Math.min(image.height, coords.y / scale));
+				} else if (boxZone === BOX_ZONE.INSIDE) {
+					const b_width = focusBox[2] - focusBox[0];
+					const b_height = focusBox[3] - focusBox[1];
+	
+					// Limit the box to the image boundaries so that it keeps the size when touching the edges
+					focusBox[0] = Math.min(image.width - b_width, Math.max(0, coords.x / scale - b_width / 2));
+					focusBox[1] = Math.min(image.height - b_height, Math.max(0, coords.y / scale - b_height / 2));
+					focusBox[2] = Math.min(image.width, Math.max(b_width, coords.x / scale + b_width / 2));
+					focusBox[3] = Math.min(image.height, Math.max(b_height, coords.y / scale + b_height / 2));
+				}
+	
+				setBoxes((prevBoxes) => {
+					const updatedBoxes = [...prevBoxes];
+					updatedBoxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex] = focusBox;
+					return updatedBoxes;
+				});
 			}
 
-			setBoxes((prevBoxes) => {
-				const updatedBoxes = [...prevBoxes];
-				updatedBoxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex] = focusBox;
-				return updatedBoxes;
-			});
 		}
 	}
 
@@ -330,6 +365,12 @@ const EditLayout = () => {
 			draggingRef.current = false;
 		} else if (workingMode === CANVAS_MODE.EDIT) {
 			resizingRef.current = false;
+			
+			// If the box was not created, reset the focus box index
+			if (prevFocusBoxIndex.boxIndex === boxes[prevFocusBoxIndex.symbolIndex].length) {
+				setFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length - 1});
+				setPrevFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length - 1});
+			}
 		}
 	}
 
@@ -370,7 +411,7 @@ const EditLayout = () => {
 		ctx.globalAlpha = 1;
 
 		// Check if the focus box is valid
-		if (focusBoxIndex.symbolIndex !== -1 && focusBoxIndex.boxIndex !== -1) {
+		if (focusBoxIndex.symbolIndex !== -1 && focusBoxIndex.boxIndex > -1 && focusBoxIndex.boxIndex < boxes[focusBoxIndex.symbolIndex].length) {
 			// Extract coordinates of corners
 			const focusBox = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
 			const x1 = focusBox[0], y1 = focusBox[1];
@@ -462,15 +503,14 @@ const EditLayout = () => {
 
 	const handleSymbolSelect = (e) => {
 		const listSymbolIndex = parseInt(e.target.getAttribute("symbol-index"));
-		setListSymbolIndex(() => listSymbolIndex);
-		setCurrentSymbolBoxes(() => boxes[focusBoxIndex.symbolIndex]);
 
 		// Update the search text
 		setSearchText(CLASS_NAMES[listSymbolIndex]);
 	}
 
 	const handleSymbolSave = () => {
-		const currentBox = currentSymbolBoxes[focusBoxIndex.boxIndex];
+		const currentBox = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
+		const currentSymbolBoxes = boxes[focusBoxIndex.symbolIndex];
 
 		setBoxes((prevBoxes) => {
 			const updatedBoxes = [...prevBoxes];
@@ -478,7 +518,10 @@ const EditLayout = () => {
 			updatedBoxes[focusBoxIndex.symbolIndex] = currentSymbolBoxes.filter((_, index) => index !== focusBoxIndex.boxIndex);
 
 			// Add the focus box to the selected symbol
-			updatedBoxes[listSymbolIndex].push(currentBox);
+			// Avoid adding duplicate boxes by checking if the last box is the same as the current box
+			if (updatedBoxes[listSymbolIndex].length === 0 || updatedBoxes[listSymbolIndex][updatedBoxes[listSymbolIndex].length - 1].join() !== currentBox.join()) {
+				updatedBoxes[listSymbolIndex].push(currentBox);
+			}
 
 			return updatedBoxes;
 		});
@@ -489,6 +532,8 @@ const EditLayout = () => {
 	}
 
 	const handleSymbolDelete = () => {
+		const currentSymbolBoxes = boxes[focusBoxIndex.symbolIndex];
+		
 		setBoxes((prevBoxes) => {
 			const updatedBoxes = [...prevBoxes];
 			updatedBoxes[focusBoxIndex.symbolIndex] = currentSymbolBoxes.filter((_, index) => index !== focusBoxIndex.boxIndex);
@@ -502,7 +547,7 @@ const EditLayout = () => {
 
 	// Highlight the symbol in the list when the search text changes
 	useEffect(() => {
-		if (!symbolListRef.current.children || searchText === "") return;
+		if (!symbolListRef.current.children) return;
 		
 		for (let i = 0; i < symbolListRef.current.children.length; i++) {
 			const child = symbolListRef.current.children[i];
@@ -511,6 +556,10 @@ const EditLayout = () => {
 			if (child.children[1].textContent === searchText) {
 				child.classList.add("bg-primary");
 				child.classList.add("opacity-[100%]");
+				
+				// Set the symbol index to the selected symbol
+				const symbolIndex = parseInt(child.getAttribute("symbol-index"));
+				setListSymbolIndex(() => symbolIndex);
 			} else {
 				child.classList.remove("bg-primary");
 				child.classList.remove("opacity-[100%]");
@@ -520,9 +569,32 @@ const EditLayout = () => {
 		searchBoxRef.current.value = searchText;
 	}, [searchText]);
 
+	const handleReset = () => {
+		const retrievedData = JSON.parse(localStorage.getItem('images'));
+		const canvasData = retrievedData.find((image) => image.page === page && image.zone === zone);
+
+		setBoxes(canvasData.boxes);
+	}
+
+	const handleSave = () => {
+		const retrievedData = JSON.parse(localStorage.getItem('images'));
+
+		const updatedData = retrievedData.map((image) => {
+			if (image.page === page && image.zone === zone) {
+				return {
+					...image,
+					boxes: boxes,
+				}
+			}
+			return image;
+		})
+
+		localStorage.setItem('images', JSON.stringify(updatedData));
+	}
+
 	return (
-  		<div className='flex h-[100vh] bg-primary'>
-			<div className='relative w-[16%] bg-secondary'>
+  		<div className='flex h-[100vh] overflow-hidden bg-primary'>
+			<div className='relative w-[16%] bg-secondary border-r-2 border-zinc-600 border-solid'>
 				<div className='p-2 absolute flex flex-col justify-center items-center top-0 left-0 w-full h-full bg-[rgba(0,0,0,0.25)] z-10 backdrop-blur-xs' ref={noSelectionRef}>
 					<h1 className='text-lg'>No box selected</h1>
 					<p className='py-2 text-xs opacity-[40%] text-center'>Click on a box to start editing</p>
@@ -555,6 +627,19 @@ const EditLayout = () => {
 				</div>
 			</div>
 			<div className='relative w-[84%]'>
+				<div className='aboslute top-0 left-0 w-full h-14 bg-secondary flex items-center justify-between px-4'>
+					<div className='flex items-center'>
+						<h1 className='text-white text-lg'>{image.alt}</h1>
+					</div>
+					<div className='flex items-center'>
+						<div className='w-15 bg-transparent mx-1 rounded-md border border-2 border-primary text-xs text-center text-white p-2 cursor-pointer hover:bg-primary transition-all duration-100 ease' onClick={handleReset}>
+							<h1>Reset</h1>
+						</div>
+						<div className='w-15 bg-zinc-300 mx-1 rounded-md border border-2 border-primary text-xs text-center text-black p-2 cursor-pointer hover:bg-zinc-400 transition-all duration-100 ease' onClick={handleSave}>
+							<h1>Save</h1>
+						</div>
+					</div>
+				</div>
 				<canvas ref={canvasRef} className='w-full h-full' onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
 				</canvas>
 				<div className='absolute bottom-3 left-[50%] -translate-x-[50%] h-10 bg-secondary mx-auto mt-4 rounded-lg grid grid-cols-2'>
