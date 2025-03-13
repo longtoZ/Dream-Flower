@@ -100,6 +100,40 @@ def remove_staff_lines(zone: np.ndarray) -> np.ndarray:
 
     return inverted
 
+def extract_staff_lines(zone: np.ndarray) -> list:
+    # Convert image to grayscale and apply thresholding
+    gray = cv2.cvtColor(zone, cv2.COLOR_BGR2GRAY)
+    horizontal = cv2.threshold(gray, 210, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    height, width, = horizontal.shape
+
+    # Create structure element for extracting horizontal lines through morphology operations
+    horizontalStructure = cv2.getStructuringElement(cv2.MORPH_RECT, (round(width*0.8), 1))
+
+    # Apply morphology operations
+    horizontal = cv2.erode(horizontal, horizontalStructure)
+    horizontal = cv2.dilate(horizontal, horizontalStructure)
+
+    # Filter based on thickness
+    contours, _ = cv2.findContours(horizontal, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = sorted(contours, key=lambda x : cv2.boundingRect(x)[1])
+
+    # List to hold staff lines
+    staff_lines = []
+
+    for contour in contours:
+        # Get bounding box of each contour
+        x, y, w, h = cv2.boundingRect(contour)
+        
+        # Filter based on height (thickness)
+        if w < width*0.8 and h > 4:  # Adjust this value to filter out thicker beams
+            cv2.drawContours(horizontal, [contour], -1, 0, -1)
+        else:
+            staff_lines.append((x, y, w, h))
+
+    # Optional: Preserve edges
+    # horizontal = cv2.dilate(horizontal, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=1)
+
+    return staff_lines
 
 def extract_boxes(image_io: io.BytesIO) -> list:
     image = cv2.imdecode(np.frombuffer(image_io.getvalue(), np.uint8), cv2.IMREAD_COLOR)
@@ -163,6 +197,9 @@ class StreamImages(Resource):
                     # Remove staff lines from the zone
                     zone_no_lines = remove_staff_lines(zone)
 
+                    # Extract staff lines from the zone
+                    staff_lines = extract_staff_lines(zone)
+
                     # Convert Numpy array to image
                     zone_image = Image.fromarray(cv2.cvtColor(zone_no_lines, cv2.COLOR_BGR2RGB))
 
@@ -179,7 +216,8 @@ class StreamImages(Resource):
                         "page": i + 1,
                         "zone": j + 1,
                         "image": zone_base64,
-                        "boxes": extract_boxes(zone_io)
+                        "boxes": extract_boxes(zone_io),
+                        "staff_lines": staff_lines
                     }
 
                     print(f"Image {i + 1}, Zone {j + 1} sent")
