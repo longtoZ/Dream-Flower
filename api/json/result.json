@@ -1,0 +1,173 @@
+[
+    {
+        "notes": [
+            "E4",
+            "A3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 281.99017333984375
+    },
+    {
+        "rest": "eight",
+        "x": 353.4376525878906
+    },
+    {
+        "notes": [
+            "E4",
+            "A3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 431.8719787597656
+    },
+    {
+        "rest": "eight",
+        "x": 502.35772705078125
+    },
+    {
+        "notes": [
+            "E4",
+            "A3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 582.5811157226562
+    },
+    {
+        "rest": "eight",
+        "x": 655.6688842773438
+    },
+    {
+        "notes": [
+            "E4",
+            "A3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 734.3782958984375
+    },
+    {
+        "notes": [
+            "F4",
+            "A3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 810.0492553710938
+    },
+    {
+        "rest": "eight",
+        "x": 906.0031127929688
+    },
+    {
+        "notes": [
+            "F4",
+            "A3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 989.5261840820312
+    },
+    {
+        "rest": "eight",
+        "x": 1061.257080078125
+    },
+    {
+        "notes": [
+            "F4",
+            "A3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 1140.745849609375
+    },
+    {
+        "notes": [
+            "F4",
+            "A3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 1218.531494140625
+    },
+    {
+        "rest": "eight",
+        "x": 1290.0067138671875
+    },
+    {
+        "notes": [
+            "F4",
+            "A3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 1370.812255859375
+    },
+    {
+        "rest": "eight",
+        "x": 1444.410888671875
+    },
+    {
+        "notes": [
+            "F4",
+            "C4",
+            "G3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 1557.1014404296875
+    },
+    {
+        "rest": "eight",
+        "x": 1628.607421875
+    },
+    {
+        "notes": [
+            "F4",
+            "C4",
+            "G3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 1708.4615478515625
+    },
+    {
+        "rest": "eight",
+        "x": 1780.086181640625
+    },
+    {
+        "notes": [
+            "F4",
+            "C4",
+            "G3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 1860.4501953125
+    },
+    {
+        "rest": "eight",
+        "x": 1930.4598388671875
+    },
+    {
+        "notes": [
+            "F4",
+            "C4",
+            "G3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 2011.1614231374806
+    },
+    {
+        "notes": [
+            "E4",
+            "C4",
+            "G3"
+        ],
+        "head_type": "quarter_note",
+        "flag_type": "eight",
+        "x": 2087.338134765625
+    }
+]

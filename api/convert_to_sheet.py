@@ -112,9 +112,6 @@ for symbol_index in range(len(boxes)):
 for key in treble_zones:
     treble_zones[key] = sorted(treble_zones[key], key=lambda coord: (coord["box"][0], coord["box"][1]))
 
-print(json.dumps(treble_staff_lines, indent=4))
-print(json.dumps(bass_staff_lines, indent=4))
-
 # --------------------------------- Determine Scale ---------------------------------
 # Determine the scale
 scale = ""
@@ -158,7 +155,6 @@ if (len(treble_zones["sharp"]) > 0):
 # --------------------------------- Determine Note's Pitch ---------------------------------
 # Determine note's pitch
 def get_note_pitch(p1, p2):
-    print("p1:", p1, "p2:", p2)
     letters = ["C", "D", "E", "F", "G", "A", "B"]
 
     if (letters.index(p1[0]) == 6):
@@ -192,29 +188,39 @@ if (len(treble_zones["note"]) > 0):
             notes = sorted(notes, key=lambda x: x["box"][1])
             notes_data = {
                 "notes": [],
+                "head_type": "",
+                "flag_type": "",
+                "x": 0,
             }
 
             # Determine the pitch of each note
             for note in notes:
+                # Update the farthermost x-coordinate
+                notes_data["x"] = max(notes_data["x"], note["box"][2])
+
+                # Update the head type
+                notes_data["head_type"] = note["symbol"]
+
                 y1 = note["box"][1]
                 y2 = note["box"][3]
                 note_pitch = ""
 
+                # Iterate through the staff lines and find the correct line the note is laying on
                 for line_idx in range(len(treble_staff_lines_list)):
                     curr_line_y = treble_staff_lines_list[line_idx][1]
                     next_line_y = treble_staff_lines_list[line_idx + 1][1] if line_idx < len(treble_staff_lines_list) - 1 else None
 
-                    if (y1 < curr_line_y):
+                    if (y1 <= curr_line_y):
                         # If the box covers two lines, the note is in staff space
-                        if (next_line_y is not None and y2 > next_line_y):
+                        if (next_line_y is not None and y2 >= next_line_y):
                             note_pitch = get_note_pitch(treble_staff_lines_list[line_idx + 1][0], treble_staff_lines_list[line_idx][0])
-                            print("Note in staff space:", note_pitch)
+                            # print("Note in staff space:", note_pitch)
                         # If the box covers only one line, the note is on the staff line
                         else:
                             note_pitch = treble_staff_lines_list[line_idx][0]
-                            print("Note on staff line:", note_pitch)
+                            # print("Note on staff line:", note_pitch)
                         
-                        print("y1:", y1, "y2:", y2, note_pitch, end="\n\n")
+                        # print("y1:", y1, "y2:", y2, note_pitch, end="\n\n")
 
                         break
                 
@@ -229,4 +235,136 @@ if (len(treble_zones["note"]) > 0):
         prev_x = curr_x
         note_idx += 1
 
-print("Sheet:", sheet)
+# Remove the dummy note
+treble_zones["note"].pop()
+
+# --------------------------------- Determine Note's Duration ---------------------------------
+# Determine note's duration by checking the flag symbol
+note_idx = 0
+flag_idx = 0
+
+if (len(treble_zones["flag"]) > 0):
+    while (flag_idx < len(treble_zones["flag"])):
+        curr_flag = treble_zones["flag"][flag_idx]
+
+        # Iterate through the notes and find the note that is right in front of the flag
+        while (note_idx < len(sheet)):
+            curr_note = sheet[note_idx]
+
+            if (curr_flag["box"][0] - curr_note["x"] < 10):
+                # Only update the flag type if the note head type is a quarter note. Half note and whole note do not have flags
+                if (curr_note["head_type"] == "quarter_note"):
+                    curr_note["flag_type"] = curr_flag["symbol"].replace("_flag", "")
+                break
+            
+            note_idx += 1
+        
+        flag_idx += 1
+
+# Determine note's duration based on the beam symbol
+note_idx = 0
+beam_idx = 0
+
+if (len(treble_zones["beam"]) > 0):
+    while (beam_idx < len(treble_zones["beam"])):
+        curr_beam = treble_zones["beam"][beam_idx]
+
+        # Iterate through the notes and find the note that is right in front of the beam
+        while (note_idx < len(sheet)):
+            curr_note = sheet[note_idx]
+            next_note = sheet[note_idx + 1] if note_idx < len(sheet) - 1 else None
+
+            if (next_note is not None and curr_beam["box"][0] - curr_note["x"] < 10 and next_note["x"] - curr_beam["box"][2] < 10):
+                # Only update the flag type if the note head type is a quarter note. Half note and whole note do not have beams
+                if (curr_note["head_type"] == "quarter_note"):
+                    curr_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
+                    next_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
+                break
+            
+            note_idx += 1
+        
+        beam_idx += 1
+
+# --------------------------------- Determine Rest's Duration ---------------------------------
+note_idx = 0
+rest_idx = 0
+
+# Iterate through the rests and push them into the correct order in the sheet
+if (len(treble_zones["rest"]) > 0):
+    while (note_idx < len(sheet)):
+        curr_note = sheet[note_idx]
+        rests_to_push = []
+
+        while (rest_idx < len(treble_zones["rest"])):
+            curr_rest = treble_zones["rest"][rest_idx]
+
+            # In case the rests are in front of the note
+            if (curr_rest["box"][0] < curr_note["x"]):
+                rests_to_push.append({
+                    "rest": curr_rest["symbol"].replace("_rest", ""),
+                    "x": curr_rest["box"][2],
+                })
+                rest_idx += 1
+            else:
+                break
+        
+        # Push rests into the sheet
+        sheet[note_idx:note_idx] = rests_to_push
+
+        # Update the note index
+        note_idx += len(rests_to_push) if len(rests_to_push) > 0 else 1
+    
+    # Push the remaining rests into the sheet
+    sheet.extend(treble_zones["rest"][rest_idx:])
+
+# Assume the time signature is 4/4 and time for each measure is 1 second
+measure_playtime = 1
+note_playtime = {
+    "whole_note": 1,
+    "half_note": 0.5,
+    "quarter_note": 0.25,
+    "eighth_note": 0.125,
+    "sixteenth_note": 0.0625,
+    "thirty_second_note": 0.03125,
+}
+
+from pydub import AudioSegment
+from pydub.playback import play
+
+note_sounds = {
+    "A0": AudioSegment.from_file("sounds/A0.mp3"),
+    "C1": AudioSegment.from_file("sounds/C1.mp3"),
+    "Ds1": AudioSegment.from_file("sounds/Ds1.mp3"),
+    "Fs1": AudioSegment.from_file("sounds/Fs1.mp3"),
+    "A1": AudioSegment.from_file("sounds/A1.mp3"),
+    "C2": AudioSegment.from_file("sounds/C2.mp3"),
+    "Ds2": AudioSegment.from_file("sounds/Ds2.mp3"),
+    "Fs2": AudioSegment.from_file("sounds/Fs2.mp3"),
+    "A2": AudioSegment.from_file("sounds/A2.mp3"),
+    "C3": AudioSegment.from_file("sounds/C3.mp3"),
+    "Ds3": AudioSegment.from_file("sounds/Ds3.mp3"),
+    "Fs3": AudioSegment.from_file("sounds/Fs3.mp3"),
+    "A3": AudioSegment.from_file("sounds/A3.mp3"),
+    "C4": AudioSegment.from_file("sounds/C4.mp3"),
+    "Ds4": AudioSegment.from_file("sounds/Ds4.mp3"),
+    "Fs4": AudioSegment.from_file("sounds/Fs4.mp3"),
+    "A4": AudioSegment.from_file("sounds/A4.mp3"),
+    "C5": AudioSegment.from_file("sounds/C5.mp3"),
+    "Ds5": AudioSegment.from_file("sounds/Ds5.mp3"),
+    "Fs5": AudioSegment.from_file("sounds/Fs5.mp3"),
+    "A5": AudioSegment.from_file("sounds/A5.mp3"),
+    "C6": AudioSegment.from_file("sounds/C6.mp3"),
+    "Ds6": AudioSegment.from_file("sounds/Ds6.mp3"),
+    "Fs6": AudioSegment.from_file("sounds/Fs6.mp3"),
+    "A6": AudioSegment.from_file("sounds/A6.mp3"),
+    "C7": AudioSegment.from_file("sounds/C7.mp3"),
+    "Ds7": AudioSegment.from_file("sounds/Ds7.mp3"),
+    "Fs7": AudioSegment.from_file("sounds/Fs7.mp3"),
+    "A7": AudioSegment.from_file("sounds/A7.mp3"),
+    "C8": AudioSegment.from_file("sounds/C8.mp3"),
+}
+
+def pitch_shift(sound, shift):
+    return sound._spawn(sound.raw_data, overrides={
+        "frame_rate": int(sound.frame_rate * (2 ** (shift / 12.0)))
+    })
