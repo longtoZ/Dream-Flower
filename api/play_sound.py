@@ -107,25 +107,43 @@ note_playtime = {
     "thirty_second": 0.03125 * measure_playtime,
 }
 
-with open("json/result.json") as f:
+with open("json/result2.json") as f:
     data = json.load(f)
 
-final_audio = AudioSegment.silent(duration=0)
+def generate_audio(zone):
+    final_audio = AudioSegment.silent(duration=0)
 
-for symbol in data:
-    if (symbol.get("notes")):
-        notes = [AudioSegment.from_mp3(f"sounds/{note}.mp3") for note in symbol["notes"]]
-        # Create a chord by overlaying all notes
-        chord = notes[0]
-        for note in notes[1:]:
-            chord = chord.overlay(note)
-        
-        # Trim the chord to the correct duration
-        chord = chord[:int(note_playtime[symbol["flag_type"]])]
+    for symbol in zone:
+        if (symbol.get("notes")):
+            notes = [AudioSegment.from_mp3(f"sounds/{note}.mp3") for note in symbol["notes"]]
+            # Create a chord by overlaying all notes
+            chord = notes[0].apply_gain(-10)
+            for note in notes[1:]:
+                chord = chord.overlay(note)
+            
+            # Trim the chord to the correct duration
+            chord = chord[:int(note_playtime[symbol["flag_type"]])]
 
-        # Add the chord to the final audio
-        final_audio += chord
-    else:
-        final_audio += AudioSegment.silent(duration=int(note_playtime[symbol["rest"]]))
+            # Add fade in and fade out to the chord
+            chord = chord.fade_in(100)
+            chord = chord.fade_out(100)
 
-final_audio.export("output/output2.wav", format="wav")
+            # Add the chord to the final audio
+            final_audio += chord
+        else:
+            final_audio += AudioSegment.silent(duration=int(note_playtime[symbol["rest"]]))
+
+    # final_audio.export("output/output_bass.wav", format="wav")
+
+    return final_audio
+
+treble_audio = generate_audio(data["treble_zone"])
+bass_audio = generate_audio(data["bass_zone"])
+
+# Adjust the volume of the treble and bass audio
+treble_audio = treble_audio.apply_gain(-10)
+bass_audio = bass_audio.apply_gain(-10)
+
+final_audio = treble_audio.overlay(bass_audio)
+
+final_audio.export("output/output_full.wav", format="wav")
