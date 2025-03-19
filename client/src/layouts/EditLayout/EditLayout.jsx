@@ -423,7 +423,28 @@ const EditLayout = () => {
 			ctx.strokeStyle = CLASS_COLORS[focusBoxIndex.symbolIndex];
 			ctx.lineWidth = 2;
 
+			// Draw the selected zones except the focus box
 			boxes[focusBoxIndex.symbolIndex].forEach((box, _) => {
+				if (_ !== focusBoxIndex.boxIndex) {
+					const b_width = box[2] - box[0];
+					const b_height = box[3] - box[1];
+					const b_x = box[0];
+					const b_y = box[1];
+	
+					// Get the selected zones of the original image but draw with the modified scale
+					ctx.drawImage(image, b_x, b_y, b_width, b_height, b_x * scale, b_y * scale, b_width * scale, b_height * scale);
+					
+					// Draw the box
+					ctx.beginPath();
+					ctx.rect(b_x * scale, b_y * scale, b_width * scale, b_height * scale);
+					ctx.stroke();
+					ctx.closePath();
+				}
+			});
+
+			// Draw the focus box last so that it appears on top of the other boxes
+			if (focusBoxIndex.boxIndex !== -1) {
+				const box = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
 				const b_width = box[2] - box[0];
 				const b_height = box[3] - box[1];
 				const b_x = box[0];
@@ -431,12 +452,13 @@ const EditLayout = () => {
 
 				// Get the selected zones of the original image but draw with the modified scale
 				ctx.drawImage(image, b_x, b_y, b_width, b_height, b_x * scale, b_y * scale, b_width * scale, b_height * scale);
-				
+
 				// Draw the box
 				ctx.beginPath();
-				ctx.strokeRect(b_x * scale, b_y * scale, b_width * scale, b_height * scale);
+				ctx.rect(b_x * scale, b_y * scale, b_width * scale, b_height * scale);
+				ctx.stroke();
 				ctx.closePath();
-			});
+			}
 
 			// Add class name of the selected boxes
 			ctx.font = `${scale * 20}px Arial`;
@@ -514,6 +536,7 @@ const EditLayout = () => {
 
 		setBoxes((prevBoxes) => {
 			const updatedBoxes = [...prevBoxes];
+
 			// Remove the focus box from the current symbol
 			updatedBoxes[focusBoxIndex.symbolIndex] = currentSymbolBoxes.filter((_, index) => index !== focusBoxIndex.boxIndex);
 
@@ -560,6 +583,7 @@ const EditLayout = () => {
 				// Set the symbol index to the selected symbol
 				const symbolIndex = parseInt(child.getAttribute("symbol-index"));
 				setListSymbolIndex(() => symbolIndex);
+				setPrevFocusBoxIndex(() => ({symbolIndex: symbolIndex, boxIndex: focusBoxIndex.boxIndex}));
 			} else {
 				child.classList.remove("bg-primary");
 				child.classList.remove("opacity-[100%]");

@@ -107,7 +107,7 @@ note_playtime = {
     "thirty_second": 0.03125 * measure_playtime,
 }
 
-with open("json/result2.json") as f:
+with open("json/result_mix.json") as f:
     data = json.load(f)
 
 def generate_audio(zone):
@@ -130,7 +130,7 @@ def generate_audio(zone):
 
             # Add the chord to the final audio
             final_audio += chord
-        else:
+        elif (symbol.get("rest")):
             final_audio += AudioSegment.silent(duration=int(note_playtime[symbol["rest"]]))
 
     # final_audio.export("output/output_bass.wav", format="wav")
@@ -146,4 +146,4 @@ bass_audio = bass_audio.apply_gain(-10)
 
 final_audio = treble_audio.overlay(bass_audio)
 
-final_audio.export("output/output_full.wav", format="wav")
+final_audio.export("output/output_full_mix.wav", format="wav")

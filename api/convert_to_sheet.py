@@ -16,13 +16,31 @@ SCALE = {
     "5b": "Db major",
     "6b": "Gb major",
     "7b": "Cb major",
-    "1#": "G major",
-    "2#": "D major",
-    "3#": "A major",
-    "4#": "E major",
-    "5#": "B major",
-    "6#": "F# major",
-    "7#": "C# major"
+    "1s": "G major",
+    "2s": "D major",
+    "3s": "A major",
+    "4s": "E major",
+    "5s": "B major",
+    "6s": "F# major",
+    "7s": "C# major"
+}
+
+NOTES_ON_SCALE = {
+    "0": ["C", "D", "E", "F", "G", "A", "B"],
+    "1b": ["C", "D", "E", "F", "G", "A", "As"],
+    "2b": ["C", "D", "Ds", "F", "G", "A", "As"],
+    "3b": ["C", "D", "Ds", "F", "G", "Gs", "As"],
+    "4b": ["C", "Cs", "Ds", "F", "G", "Gs", "As"],
+    "5b": ["C", "Cs", "Ds", "F", "Fs", "Gs", "As"],
+    "6b": ["B", "Cs", "Ds", "F", "Fs", "Gs", "As"],
+    "7b": ["B", "Cs", "Ds", "E", "Fs", "Gs", "As"],
+    "1s": ["C", "D", "E", "Fs", "G", "A", "B"],
+    "2s": ["Cs", "D", "E", "Fs", "G", "A", "B"],
+    "3s": ["Cs", "D", "E", "Fs", "Gs", "A", "B"],
+    "4s": ["Cs", "Ds", "E", "Fs", "Gs", "A", "B"],
+    "5s": ["Cs", "Ds", "E", "Fs", "Gs", "As", "B"],
+    "6s": ["Cs", "Ds", "F", "Fs", "Gs", "As", "B"],
+    "7s": ["Cs", "Ds", "F", "Fs", "Gs", "As", "Bs"]
 }
 
 with open("json/data.json", "r") as f:
@@ -85,6 +103,7 @@ treble_zones = {
     "flat": [],
     "natural": [],
     "clef": [],
+    "barline": [],
 }
 bass_zones = {
     "note": [],
@@ -95,6 +114,7 @@ bass_zones = {
     "flat": [],
     "natural": [],
     "clef": [],
+    "barline": [],
 }
 space_max_diff = line_space
 
@@ -128,53 +148,74 @@ for key in bass_zones:
 # Determine the scale
 scale = ""
 
-sharp_idx = 0
-flat_idx = 0
+sharp_idx = 1
 
 if (len(treble_zones["sharp"]) > 0):
     # If there is a sharp symbol near the clef, determine the scale based on the sharp symbol
-    if (treble_zones["sharp"][0]["box"][0] - treble_zones["clef"][0]["box"][0] < 10):
-        prev_x = treble_zones["sharp"][0]["box"][0]
+    if (treble_zones["sharp"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < 20):
+        prev_x = treble_zones["sharp"][0]["box"][2]
 
         while (sharp_idx < len(treble_zones["sharp"])):
             curr_x = treble_zones["sharp"][sharp_idx]["box"][0]
 
+            # Compare the starting x-coordinate of the current box with the ending x-coordinate of the previous box
             if (curr_x - prev_x < 10):
-                scale = SCALE[str(sharp_idx + 1) + "#"]
+                scale = f"{str(sharp_idx + 1)}s"
             else:
                 break
 
-            prev_x = curr_x
+            # Update the previous x-coordinate by the current ending x-coordinate
+            prev_x = treble_zones["sharp"][sharp_idx]["box"][2]
             sharp_idx += 1
-    
-    # If there is a sharp symbol near the clef, determine the scale based on the sharp symbol
-    elif (treble_zones["flat"][0]["box"][0] - treble_zones["clef"][0]["box"][0] < 10):
-        prev_x = treble_zones["flat"][0]["box"][0]
+
+flat_idx = 1
+
+if (len(treble_zones["flat"]) > 0):
+    # If there is a flat symbol near the clef, determine the scale based on the sharp symbol
+    if (treble_zones["flat"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < 20):
+        prev_x = treble_zones["flat"][0]["box"][2]
 
         while (flat_idx < len(treble_zones["flat"])):
             curr_x = treble_zones["flat"][flat_idx]["box"][0]
 
+            # Compare the starting x-coordinate of the current box with the ending x-coordinate of the previous box
             if (curr_x - prev_x < 10):
-                scale = SCALE[str(flat_idx + 1) + "b"]
+                scale = f"{str(flat_idx + 1)}b"
             else:
                 break
-
-            prev_x = curr_x
+            
+            # Update the previous x-coordinate by the current ending x-coordinate
+            prev_x = treble_zones["flat"][flat_idx]["box"][2]
             flat_idx += 1
-    else:
-        scale = SCALE["0"]
 
 # --------------------------------- Determine Note's Pitch ---------------------------------
+def shift_note(original_note, scale):
+    note_idx = 0
+
+    # Find the index of the orignal note in C major scale
+    for i in range(len(NOTES_ON_SCALE["0"])):
+        if (NOTES_ON_SCALE["0"][i] == original_note[0]):
+            note_idx = i
+            break
+    
+    # Shift the note based on the scale
+    shifted_note = NOTES_ON_SCALE[scale][note_idx] + original_note[1]
+    
+    return shifted_note
+
 # Determine note's pitch
 def get_note_pitch(p1, p2):
     letters = ["C", "D", "E", "F", "G", "A", "B"]
+    note = ""
 
     if (letters.index(p1[0]) == 6):
-        return f"{letters[0]}{int(p1[1]) + 1}"
+        note = f"{letters[0]}{int(p1[1]) + 1}"
     elif (letters.index(p2[0]) == 0):
-        return f"{letters[6]}{int(p2[1]) - 1}"
+        note = f"{letters[6]}{int(p2[1]) - 1}"
     else:
-        return f"{letters[letters.index(p1[0]) + 1]}{p1[1]}"
+        note = f"{letters[letters.index(p1[0]) + 1]}{p1[1]}"
+    
+    return note
 
 sheet = {
     "treble_zone": [],
@@ -237,7 +278,7 @@ def generate_zones_data(zone_name, zones, staff_lines_list):
                                 # print("Note on staff line:", note_pitch)
                             
                             # print("y1:", y1, "y2:", y2, note_pitch, end="\n\n")
-
+                            note_pitch = shift_note(note_pitch, scale)
                             break
                     
                     notes_data["notes"].append(note_pitch)
@@ -343,6 +384,37 @@ def generate_rest_duration(zone_name, zones):
 
 generate_rest_duration("treble_zone", treble_zones)
 generate_rest_duration("bass_zone", bass_zones)
+
+# --------------------------------- Determine barline position ---------------------------------
+def generate_barline_position(zone_name, zones):
+    note_idx = 0
+    barline_idx = 0
+
+    if (len(zones["barline"]) > 0):
+        while (note_idx < len(sheet[zone_name])):
+            curr_note = sheet[zone_name][note_idx]
+
+            while (barline_idx < len(zones["barline"])):
+                curr_barline = zones["barline"][barline_idx]
+                barlines_to_push = []
+
+                if (curr_barline["box"][0] < curr_note["x"]):
+                    barlines_to_push.append({
+                        "barline": curr_barline["symbol"],
+                        "x": curr_barline["box"][2],
+                    })
+                    barline_idx += 1
+                else:
+                    break
+            
+            sheet[zone_name][note_idx:note_idx] = barlines_to_push
+
+            note_idx += len(barlines_to_push) if len(barlines_to_push) > 0 else 1
+        
+        sheet[zone_name].extend(zones["barline"][barline_idx:])
+
+generate_barline_position("treble_zone", treble_zones)
+generate_barline_position("bass_zone", bass_zones)
 
 print(json.dumps(sheet, indent=4))
 
