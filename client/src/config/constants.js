@@ -1,9 +1,4 @@
-export const CLASS_NAMES = [
-    "barline", "bass_clef", "decrescendo", "dotted_note", "eight_beam",
-    "eight_flag", "eight_rest", "flat", "half_note", "natural",
-    "quarter_note", "quarter_rest", "sharp", "sixteenth_beam", "sixteenth_flag",
-    "sixteenth_rest", "thirty_second_beam", "treble_clef", "whole_half_rest", "whole_note"
-];
+export const CLASS_NAMES = ['barline', 'bass_clef', 'decrescendo', 'dotted_half_note', 'dotted_quarter_note', 'eight_beam', 'eight_flag', 'eight_rest', 'flat', 'half_note', 'natural', 'quarter_note', 'quarter_rest', 'sharp', 'sixteenth_beam', 'sixteenth_flag', 'sixteenth_rest', 'thirty_second_beam', 'treble_clef', 'whole_half_rest', 'whole_note'];
 export const CLASS_COLORS = [
     "rgb(199, 252, 0)",
     "rgb(134, 34, 255)",
@@ -24,7 +19,8 @@ export const CLASS_COLORS = [
     "rgb(220, 20, 60)",
     "rgb(0, 255, 255)",
     "rgb(216, 191, 216)",
-    "rgb(255, 20, 147)"
+    "rgb(255, 20, 147)",
+    "rgb(94, 201, 103)",
 ]
 
 export const CANVAS_MODE = {

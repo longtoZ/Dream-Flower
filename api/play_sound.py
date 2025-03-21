@@ -107,31 +107,56 @@ note_playtime = {
     "thirty_second": 0.03125 * measure_playtime,
 }
 
-with open("json/result_mix.json") as f:
+with open("json/result4.json") as f:
     data = json.load(f)
 
 def generate_audio(zone):
     final_audio = AudioSegment.silent(duration=0)
 
-    for symbol in zone:
-        if (symbol.get("notes")):
-            notes = [AudioSegment.from_mp3(f"sounds/{note}.mp3") for note in symbol["notes"]]
-            # Create a chord by overlaying all notes
-            chord = notes[0].apply_gain(-10)
-            for note in notes[1:]:
-                chord = chord.overlay(note)
-            
-            # Trim the chord to the correct duration
-            chord = chord[:int(note_playtime[symbol["flag_type"]])]
+    for measure in zone:
+        measure_audio = AudioSegment.silent(duration=0)
 
-            # Add fade in and fade out to the chord
-            chord = chord.fade_in(100)
-            chord = chord.fade_out(100)
+        for symbol in measure:
+            if (symbol.get("notes")):
+                notes = [AudioSegment.from_mp3(f"sounds/{note}.mp3") for note in symbol["notes"]]
+                # Create a chord by overlaying all notes
+                chord = notes[0].apply_gain(-10)
+                for note in notes[1:]:
+                    chord = chord.overlay(note)
 
-            # Add the chord to the final audio
-            final_audio += chord
-        elif (symbol.get("rest")):
-            final_audio += AudioSegment.silent(duration=int(note_playtime[symbol["rest"]]))
+                # Set the duration
+                # If the note doesn't have a flag, the duration is the same as the head type
+                duration = 0
+                if (len(symbol["flag_type"]) == 0):
+                    duration = note_playtime[symbol["head_type"].replace("dotted_", "").replace("_note", "")]
+                else:
+                    duration = note_playtime[symbol["flag_type"]]
+                
+                # Check if the note is dotted
+                if (symbol["head_type"].count("dotted") > 0):
+                    if (len(symbol["flag_type"]) == 0):
+                        duration += note_playtime[symbol["head_type"].replace("dotted_", "").replace("_note", "")] / 2
+                    else:
+                        duration += note_playtime[symbol["flag_type"]] / 2
+                
+                # Trim the chord to the correct duration
+                chord = chord[:int(duration)]
+
+                # Add fade in and fade out to the chord
+                chord = chord.fade_in(100)
+                chord = chord.fade_out(100)
+
+                # Add the chord to the measure audio
+                measure_audio += chord
+            elif (symbol.get("rest")):
+                measure_audio += AudioSegment.silent(duration=int(note_playtime[symbol["rest"]]))
+        
+        # If the measure audio is shorter than the measure playtime, add silence
+        if (len(measure_audio) < measure_playtime):
+            measure_audio += AudioSegment.silent(duration=measure_playtime - len(measure_audio))
+
+        # Add the measure audio to the final audio
+        final_audio += measure_audio
 
     # final_audio.export("output/output_bass.wav", format="wav")
 
@@ -146,4 +171,4 @@ bass_audio = bass_audio.apply_gain(-10)
 
 final_audio = treble_audio.overlay(bass_audio)
 
-final_audio.export("output/output_full_mix.wav", format="wav")
+final_audio.export("output/output_full_4.wav", format="wav")

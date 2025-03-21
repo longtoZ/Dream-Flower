@@ -1,11 +1,6 @@
 import json
 
-CLASS_NAMES = [
-    "barline", "bass_clef", "decrescendo", "dotted_note", "eight_beam",
-    "eight_flag", "eight_rest", "flat", "half_note", "natural",
-    "quarter_note", "quarter_rest", "sharp", "sixteenth_beam", "sixteenth_flag",
-    "sixteenth_rest", "thirty_second_beam", "treble_clef", "whole_half_rest", "whole_note"
-]
+CLASS_NAMES = ['barline', 'bass_clef', 'decrescendo', 'dotted_half_note', 'dotted_quarter_note', 'eight_beam', 'eight_flag', 'eight_rest', 'flat', 'half_note', 'natural', 'quarter_note', 'quarter_rest', 'sharp', 'sixteenth_beam', 'sixteenth_flag', 'sixteenth_rest', 'thirty_second_beam', 'treble_clef', 'whole_half_rest', 'whole_note']
 
 SCALE = {
     "0": "C major",
@@ -118,6 +113,7 @@ bass_zones = {
 }
 space_max_diff = line_space
 
+# Iterate through the boxes and put them into the correct zones
 for symbol_index in range(len(boxes)):
     for box_index in range(len(boxes[symbol_index])):
         box = boxes[symbol_index][box_index]
@@ -144,6 +140,9 @@ for key in treble_zones:
 for key in bass_zones:
     bass_zones[key] = sorted(bass_zones[key], key=lambda coord: (coord["box"][0], coord["box"][1]))
 
+# Barlines are used for both treble and bass zones
+bass_zones["barline"] = treble_zones["barline"]
+
 # --------------------------------- Determine Scale ---------------------------------
 # Determine the scale
 scale = ""
@@ -159,7 +158,7 @@ if (len(treble_zones["sharp"]) > 0):
             curr_x = treble_zones["sharp"][sharp_idx]["box"][0]
 
             # Compare the starting x-coordinate of the current box with the ending x-coordinate of the previous box
-            if (curr_x - prev_x < 10):
+            if (abs(curr_x - prev_x) < 10):
                 scale = f"{str(sharp_idx + 1)}s"
             else:
                 break
@@ -179,7 +178,7 @@ if (len(treble_zones["flat"]) > 0):
             curr_x = treble_zones["flat"][flat_idx]["box"][0]
 
             # Compare the starting x-coordinate of the current box with the ending x-coordinate of the previous box
-            if (curr_x - prev_x < 10):
+            if (abs(curr_x - prev_x) < 10):
                 scale = f"{str(flat_idx + 1)}b"
             else:
                 break
@@ -224,21 +223,22 @@ sheet = {
 treble_staff_lines_list = list(treble_staff_lines.items())
 bass_staff_lines_list = list(bass_staff_lines.items())
 
-def generate_zones_data(zone_name, zones, staff_lines_list):
+def generate_symbol_data(zone_name, zones, staff_lines_list):
     note_idx = 0
 
     # Add dummy note at the end of the list to ensure the last note is processed
     zones["note"].append({"box": [10000, 10000, 1000, 1000]})
 
     if (len(zones["note"]) > 0):
-        prev_x = zones["note"][0]["box"][0]
+        prev_coord = zones["note"][0]["box"]
         notes = []
 
         while (note_idx < len(zones["note"])):
-            curr_x = zones["note"][note_idx]["box"][0]
+            curr_coord = zones["note"][note_idx]["box"]
 
-            # Collect notes occurring in the same column
-            if (curr_x - prev_x < 10):
+            # Collect notes occurring in the same column. The second condition is used to handle
+            # the case where the note is in the same column but doesn't have enough space to stand. So, it must shift to the right 
+            if (abs(curr_coord[0] - prev_coord[0]) < line_space or curr_coord[0] <= prev_coord[2]):
                 notes.append(zones["note"][note_idx])
             else:
                 # Sort notes based on their y-coordinate
@@ -247,17 +247,20 @@ def generate_zones_data(zone_name, zones, staff_lines_list):
                     "notes": [],
                     "head_type": "",
                     "flag_type": "",
-                    "x": 0,
+                    "x1": 0,
+                    "x2": 0,
                 }
 
                 # Determine the pitch of each note
                 for note in notes:
-                    # Update the farthermost x-coordinate
-                    notes_data["x"] = max(notes_data["x"], note["box"][2])
+                    # Update the nearest and farthest x-coordinate
+                    notes_data["x1"] = min(notes_data["x1"], note["box"][0]) if notes_data["x1"] != 0 else note["box"][0]
+                    notes_data["x2"] = max(notes_data["x2"], note["box"][2]) if notes_data["x2"] != 0 else note["box"][2]
 
                     # Update the head type
                     notes_data["head_type"] = note["symbol"]
 
+                    # Find the y-coordinate of top and bottom of the note
                     y1 = note["box"][1]
                     y2 = note["box"][3]
                     note_pitch = ""
@@ -289,85 +292,111 @@ def generate_zones_data(zone_name, zones, staff_lines_list):
                 # Reset notes
                 notes = [zones["note"][note_idx]]
 
-            prev_x = curr_x
+            prev_coord = curr_coord
             note_idx += 1
 
     # Remove the dummy note
     zones["note"].pop()
 
-generate_zones_data("treble_zone", treble_zones, treble_staff_lines_list)
-generate_zones_data("bass_zone", bass_zones, bass_staff_lines_list)
+# Sometimes, the treble or bass zone is not actually themself. Therefore, we need to check their clef symbol to determine the correct zone
+# Create modified treble staff lines list by changing the key to bass staff while keeping the lines coordinates
+if (treble_zones["clef"][0]["symbol"] == "bass_clef"):
+    treble_staff_lines_list_modified = []
+
+    for i in range(len(treble_staff_lines_list)):
+        treble_staff_lines_list_modified.append((bass_staff_lines_list[i][0], treble_staff_lines_list[i][1]))
+    
+    generate_symbol_data("treble_zone", treble_zones, treble_staff_lines_list_modified)
+else:
+    generate_symbol_data("treble_zone", treble_zones, treble_staff_lines_list)
+
+# Similar to bass zone
+if (bass_zones["clef"][0]["symbol"] == "treble_clef"):
+    bass_staff_lines_list_modified = []
+
+    for i in range(len(bass_staff_lines_list)):
+        bass_staff_lines_list_modified.append((treble_staff_lines_list[i][0], bass_staff_lines_list[i][1]))
+    
+    generate_symbol_data("bass_zone", bass_zones, bass_staff_lines_list_modified)
+else:
+    generate_symbol_data("bass_zone", bass_zones, bass_staff_lines_list)
 
 # --------------------------------- Determine Note's Duration ---------------------------------
 # Determine note's duration by checking the flag symbol
-def generate_note_duration(zone_name, zones):
+def generate_note_duration(zone_name, zone):
     note_idx = 0
     flag_idx = 0
 
-    if (len(zones["flag"]) > 0):
-        while (flag_idx < len(zones["flag"])):
-            curr_flag = zones["flag"][flag_idx]
+    # Combine the flag and beam symbols into one list
+    flag_beam_list = zone["flag"] + zone["beam"]
+    flag_beam_list = sorted(flag_beam_list, key=lambda x: x["box"][0])
+
+    if (len(flag_beam_list) > 0):
+        while (flag_idx < len(flag_beam_list)):
+            curr_flag = flag_beam_list[flag_idx]
 
             # Iterate through the notes and find the note that is right in front of the flag
             while (note_idx < len(sheet[zone_name])):
                 curr_note = sheet[zone_name][note_idx]
+                
+                # If the current symbol is flag, update one note
+                if (flag_beam_list[flag_idx]["symbol"].count("flag") > 0):
+                    # Do not update if the flag type is already set
+                    if (len(curr_note["flag_type"]) != 0):
+                        note_idx += 1
+                        continue
+                    
+                    # Check if the flag's box is in acceptable range of the note's x-coordinate
+                    if (abs(curr_flag["box"][0] - curr_note["x1"]) <= line_space or abs(curr_flag["box"][0] - curr_note["x2"]) <= line_space):
+                        # Only update the flag type if the note head type is a quarter note. Half note and whole note do not have flags
+                        if (curr_note["head_type"] == "quarter_note"):
+                            curr_note["flag_type"] = curr_flag["symbol"].replace("_flag", "")
+                            print("Set flags for", curr_note["notes"])
+                        break
+                
+                # If the current symbol is beam, update two notes
+                elif (flag_beam_list[flag_idx]["symbol"].count("beam") > 0):
+                    curr_beam = curr_flag
+                    next_note = sheet[zone_name][note_idx + 1] if note_idx < len(sheet[zone_name]) - 1 else None
 
-                if (curr_flag["box"][0] - curr_note["x"] < 10):
-                    # Only update the flag type if the note head type is a quarter note. Half note and whole note do not have flags
-                    if (curr_note["head_type"] == "quarter_note"):
-                        curr_note["flag_type"] = curr_flag["symbol"].replace("_flag", "")
-                    break
+                    # Check if the beam's box is in acceptable range of the note's x-coordinate
+                    if (next_note is not None 
+                        and (abs(curr_beam["box"][0] - curr_note["x1"]) <= line_space or abs(curr_beam["box"][0] - curr_note["x2"]) <= line_space)
+                        and abs(curr_beam["box"][2] - next_note["x1"]) <= line_space):
+                        # Only update the flag type if the note head type is a quarter note. Half note and whole note do not have beams
+                        if (curr_note["head_type"] == "quarter_note"):
+                            curr_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
+                            next_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
+                            print("Set beams for", curr_note["notes"], "and", next_note["notes"])
+                        break
                 
                 note_idx += 1
             
             flag_idx += 1
 
-    # Determine note's duration based on the beam symbol
-    note_idx = 0
-    beam_idx = 0
-
-    if (len(zones["beam"]) > 0):
-        while (beam_idx < len(zones["beam"])):
-            curr_beam = zones["beam"][beam_idx]
-
-            # Iterate through the notes and find the note that is right in front of the beam
-            while (note_idx < len(sheet[zone_name])):
-                curr_note = sheet[zone_name][note_idx]
-                next_note = sheet[zone_name][note_idx + 1] if note_idx < len(sheet[zone_name]) - 1 else None
-
-                if (next_note is not None and curr_beam["box"][0] - curr_note["x"] < 10 and next_note["x"] - curr_beam["box"][2] < 10):
-                    # Only update the flag type if the note head type is a quarter note. Half note and whole note do not have beams
-                    if (curr_note["head_type"] == "quarter_note"):
-                        curr_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
-                        next_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
-                    break
-                
-                note_idx += 1
-            
-            beam_idx += 1
-
 generate_note_duration("treble_zone", treble_zones)
 generate_note_duration("bass_zone", bass_zones)
 
 # --------------------------------- Determine Rest's Duration ---------------------------------
-def generate_rest_duration(zone_name, zones):
+def generate_rest_duration(zone_name, zone):
     note_idx = 0
     rest_idx = 0
 
     # Iterate through the rests and push them into the correct order in the sheet
-    if (len(zones["rest"]) > 0):
+    if (len(zone["rest"]) > 0):
         while (note_idx < len(sheet[zone_name])):
             curr_note = sheet[zone_name][note_idx]
             rests_to_push = []
 
-            while (rest_idx < len(zones["rest"])):
-                curr_rest = zones["rest"][rest_idx]
+            while (rest_idx < len(zone["rest"])):
+                curr_rest = zone["rest"][rest_idx]
 
                 # In case the rests are in front of the note
-                if (curr_rest["box"][0] < curr_note["x"]):
+                if (curr_rest["box"][0] < curr_note["x1"]):
                     rests_to_push.append({
                         "rest": curr_rest["symbol"].replace("_rest", ""),
-                        "x": curr_rest["box"][2],
+                        "x1": curr_rest["box"][0],
+                        "x2": curr_rest["box"][2],
                     })
                     rest_idx += 1
                 else:
@@ -380,28 +409,29 @@ def generate_rest_duration(zone_name, zones):
             note_idx += len(rests_to_push) if len(rests_to_push) > 0 else 1
         
         # Push the remaining rests into the sheet
-        sheet[zone_name].extend(zones["rest"][rest_idx:])
+        sheet[zone_name].extend(list(map(lambda symbol: {"rest": symbol["symbol"].replace("_rest", ""), "x1": symbol["box"][0], "x2": symbol["box"][2]}, zone["rest"][rest_idx:])))
 
 generate_rest_duration("treble_zone", treble_zones)
 generate_rest_duration("bass_zone", bass_zones)
 
 # --------------------------------- Determine barline position ---------------------------------
-def generate_barline_position(zone_name, zones):
+def generate_barline_position(zone_name, zone):
     note_idx = 0
     barline_idx = 0
 
-    if (len(zones["barline"]) > 0):
+    if (len(zone["barline"]) > 0):
         while (note_idx < len(sheet[zone_name])):
-            curr_note = sheet[zone_name][note_idx]
+            curr_symbol = sheet[zone_name][note_idx]
+            barlines_to_push = []
 
-            while (barline_idx < len(zones["barline"])):
-                curr_barline = zones["barline"][barline_idx]
-                barlines_to_push = []
+            while (barline_idx < len(zone["barline"])):
+                curr_barline = zone["barline"][barline_idx]
 
-                if (curr_barline["box"][0] < curr_note["x"]):
+                if (curr_barline["box"][0] < curr_symbol["x1"]):
                     barlines_to_push.append({
                         "barline": curr_barline["symbol"],
-                        "x": curr_barline["box"][2],
+                        "x1": curr_barline["box"][0],
+                        "x2": curr_barline["box"][2],
                     })
                     barline_idx += 1
                 else:
@@ -411,12 +441,12 @@ def generate_barline_position(zone_name, zones):
 
             note_idx += len(barlines_to_push) if len(barlines_to_push) > 0 else 1
         
-        sheet[zone_name].extend(zones["barline"][barline_idx:])
+        sheet[zone_name].extend(list(map(lambda symbol: {"barline": symbol["symbol"], "x1": symbol["box"][0], "x2": symbol["box"][2]}, zone["barline"][barline_idx:])))
 
 generate_barline_position("treble_zone", treble_zones)
 generate_barline_position("bass_zone", bass_zones)
 
-print(json.dumps(sheet, indent=4))
+# ---------------------------- Verify the duration of each measure ---------------------------------
 
 # Assume the time signature is 4/4 and time for each measure is 2 second
 measure_playtime = 2000
@@ -428,3 +458,65 @@ note_playtime = {
     "sixteenth": 0.0625 * measure_playtime,
     "thirty_second": 0.03125 * measure_playtime,
 }
+
+music_sheet = {
+    "treble_zone": [],
+    "bass_zone": [],
+}
+
+def verify_measure_duration(zone_name, zone):
+    measure_duration = 0
+    measure_idx = 0
+    first_barline = True
+    current_measure = []
+
+    for symbol in zone:
+        should_append = False
+
+        if (symbol.get("notes")):
+            # If the note doesn't have a flag, the duration is the same as the head type
+            if (len(symbol["flag_type"]) == 0):
+                measure_duration += note_playtime[symbol["head_type"].replace("dotted_", "").replace("_note", "")]
+            else:
+                measure_duration += note_playtime[symbol["flag_type"]]
+
+            # Check if the note is dotted
+            if (symbol["head_type"].count("dotted") > 0):
+                if (len(symbol["flag_type"]) == 0):
+                    measure_duration += note_playtime[symbol["head_type"].replace("dotted_", "").replace("_note", "")] / 2
+                else:
+                    measure_duration += note_playtime[symbol["flag_type"]] / 2
+
+        elif (symbol.get("rest")):
+            measure_duration += note_playtime[symbol["rest"]]
+        elif (symbol.get("barline")):
+            # Skip the first barline
+            if (first_barline):
+                first_barline = False
+                continue
+
+            if (measure_duration != measure_playtime):
+                print("Measure", measure_idx + 1, "duration is not correct")
+                print("Expected:", measure_playtime, "Actual:", measure_duration)
+                return False
+            else:
+                print("Measure", measure_idx + 1, "duration is correct")
+
+            measure_duration = 0
+            measure_idx += 1
+            should_append = True
+        
+        # Append the symbol without x1 and x2 to the current measure
+        current_measure.append({key: value for key, value in symbol.items() if key not in ("x1", "x2")})
+
+        # Append the current measure to the music sheet
+        if (should_append):
+            music_sheet[zone_name].append(current_measure)
+            current_measure = []
+
+    return True
+
+verify_measure_duration("treble_zone", sheet["treble_zone"])
+verify_measure_duration("bass_zone", sheet["bass_zone"])
+
+print(json.dumps(music_sheet, indent=4))

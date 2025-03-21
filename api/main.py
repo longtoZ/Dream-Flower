@@ -17,13 +17,8 @@ from ultralytics import YOLO
 
 # Constants
 UPLOAD_FOLDER = "uploads"
-NUMBER_OF_CLASSES = 20
-CLASS_NAMES = [
-    "barline", "bass_clef", "decrescendo", "dotted_note", "eight_beam",
-    "eight_flag", "eight_rest", "flat", "half_note", "natural",
-    "quarter_note", "quarter_rest", "sharp", "sixteenth_beam", "sixteenth_flag",
-    "sixteenth_rest", "thirty_second_beam", "treble_clef", "whole_half_rest", "whole_note"
-]
+NUMBER_OF_CLASSES = 21
+CLASS_NAMES = ['barline', 'bass_clef', 'decrescendo', 'dotted_half_note', 'dotted_quarter_note', 'eight_beam', 'eight_flag', 'eight_rest', 'flat', 'half_note', 'natural', 'quarter_note', 'quarter_rest', 'sharp', 'sixteenth_beam', 'sixteenth_flag', 'sixteenth_rest', 'thirty_second_beam', 'treble_clef', 'whole_half_rest', 'whole_note']
 
 # Initialize Flask app and API
 app = Flask(__name__)
@@ -41,7 +36,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # -------------------- Model Initialization --------------------
 
 # Load the pretrained YOLO model
-MODEL_PATH = r"C:\Users\VICTUS\Documents\OMR project\model_training\runs\detect\train4\weights\best.pt"
+MODEL_PATH = r"C:\Users\VICTUS\Documents\OMR project\model_training\runs\detect\train5\weights\best.pt"
 model = YOLO(MODEL_PATH)
 
 # Set device (GPU if available, otherwise CPU)
@@ -207,15 +202,18 @@ class StreamImages(Resource):
                     zone_io = io.BytesIO()
                     zone_image.save(zone_io, "PNG")
 
-                    # Encode image to base64
-                    zone_base64 = base64.b64encode(zone_io.getvalue()).decode("utf-8")
+                    # Encode original zone image to base64
+                    original_zone_io = io.BytesIO()
+                    original_zone_image = Image.fromarray(cv2.cvtColor(zone, cv2.COLOR_BGR2RGB))
+                    original_zone_image.save(original_zone_io, "PNG")
+                    original_zone_base64 = base64.b64encode(original_zone_io.getvalue()).decode("utf-8")
 
                     # Extract bounding boxes from image
                     response = {
                         "filename": uploaded_filename,
                         "page": i + 1,
                         "zone": j + 1,
-                        "image": zone_base64,
+                        "image": original_zone_base64,
                         "boxes": extract_boxes(zone_io),
                         "staff_lines": staff_lines
                     }
