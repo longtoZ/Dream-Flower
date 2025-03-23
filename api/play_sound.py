@@ -107,7 +107,7 @@ note_playtime = {
     "thirty_second": 0.03125 * measure_playtime,
 }
 
-with open("json/result4.json") as f:
+with open("json/result9.json") as f:
     data = json.load(f)
 
 def generate_audio(zone):
@@ -167,8 +167,8 @@ bass_audio = generate_audio(data["bass_zone"])
 
 # Adjust the volume of the treble and bass audio
 treble_audio = treble_audio.apply_gain(-10)
-bass_audio = bass_audio.apply_gain(-10)
+bass_audio = bass_audio.apply_gain(-5)
 
 final_audio = treble_audio.overlay(bass_audio)
 
-final_audio.export("output/output_full_4.wav", format="wav")
+final_audio.export("output/output_full_9.wav", format="wav")
