@@ -1,0 +1,601 @@
+{
+    "treble_zone": [
+        [
+            {
+                "notes": [
+                    "F5",
+                    "D5",
+                    "As4",
+                    "F4"
+                ],
+                "head_type": "dotted_quarter_note",
+                "flag_type": ""
+            },
+            {
+                "notes": [
+                    "Ds5",
+                    "As4",
+                    "F4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": ""
+            },
+            {
+                "notes": [
+                    "D5",
+                    "F4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C5",
+                    "F4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C5",
+                    "A4",
+                    "F4",
+                    "C4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "C5",
+                    "A4",
+                    "F4",
+                    "C4"
+                ],
+                "head_type": "dotted_quarter_note",
+                "flag_type": ""
+            },
+            {
+                "rest": "eight"
+            },
+            {
+                "rest": "quarter"
+            },
+            {
+                "notes": [
+                    "A4",
+                    "F4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As4",
+                    "F4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "rest": "quarter"
+            },
+            {
+                "notes": [
+                    "As4",
+                    "G4",
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As4",
+                    "G4",
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C5",
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D5",
+                    "As4",
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G5",
+                    "Ds5",
+                    "As4",
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "G5",
+                    "Ds5",
+                    "As4",
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As4",
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As4",
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "F5",
+                    "As4",
+                    "G4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D5",
+                    "As4",
+                    "F4",
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "D5",
+                    "As4",
+                    "F4",
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As4",
+                    "F4",
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As4",
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As4",
+                    "F4",
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C5",
+                    "F4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D5",
+                    "As4",
+                    "F4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "F5",
+                    "C5",
+                    "A4",
+                    "F4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ]
+    ],
+    "bass_zone": [
+        [
+            {
+                "notes": [
+                    "As2",
+                    "As1"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "F3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": ""
+            },
+            {
+                "notes": [
+                    "As3",
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "F3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": ""
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "F2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "F2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "F3",
+                    "F2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4",
+                    "F3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4",
+                    "F3"
+                ],
+                "head_type": "half_note",
+                "flag_type": ""
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "G3",
+                    "G2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G3",
+                    "D3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G3",
+                    "G2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G3",
+                    "D3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "F3",
+                    "G2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G3",
+                    "D3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G3",
+                    "F2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "G3",
+                    "D3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "Ds3",
+                    "Ds2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds3",
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds3",
+                    "Ds2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds3",
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds3",
+                    "Ds2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds3",
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds3",
+                    "Ds2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds3",
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "As3",
+                    "A2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "F3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "F3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "F3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "As2"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As3",
+                    "F3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ]
+    ]
+}

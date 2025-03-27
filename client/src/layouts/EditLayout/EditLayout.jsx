@@ -1,12 +1,17 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { CLASS_NAMES, CLASS_COLORS, CANVAS_MODE, BOX_ZONE } from '../../config/constants';
+
+import ConfirmDialog from './components/ConfirmDialog';
 
 import OpenWithIcon from '@mui/icons-material/OpenWith';
 import CropFreeIcon from '@mui/icons-material/CropFree';
 import SearchIcon from '@mui/icons-material/Search';
+import ContentCutIcon from '@mui/icons-material/ContentCut';
 
 const EditLayout = () => {
+	const navigate = useNavigate();
+
     const canvasRef = useRef(null);
 	const location = useLocation();
 	const page = location.state?.page;
@@ -15,6 +20,7 @@ const EditLayout = () => {
 	// Canvas operations
 	const [image, setImage] = useState(new Image());
 	const [boxes, setBoxes] = useState([]); // Each box is represented as [x1, y1, x2, y2] where (x1, y1) is the top-left corner and (x2, y2) is the bottom-right corner
+	const [staffLines, setStaffLines] = useState([]);
 	const [scale, setScale] = useState(0.5);
 	const [startPos, setStartPos] = useState({x: 0, y: 0});
 	const [anchor, setAnchor] = useState({x: 0, y: 0});
@@ -26,6 +32,7 @@ const EditLayout = () => {
 	const [workingMode, setWorkingMode] = useState(CANVAS_MODE.DRAG);
 	const dragModeRef = useRef(CANVAS_MODE.DRAG);
 	const editModeRef = useRef(CANVAS_MODE.EDIT);
+	const cutModeRef = useRef(CANVAS_MODE.CUT);
 	const [boxZone, setBoxZone] = useState(BOX_ZONE.OUTSIDE);
 	const resizingRef = useRef(false);
 
@@ -37,6 +44,10 @@ const EditLayout = () => {
 	const searchBoxRef = useRef(null);
 	const symbolListRef = useRef(null);
 
+	// Confirm dialog operations
+	const [isDialogOpen, setDialogOpen] = useState(false);
+	const [cutPosition, setCutPosition] = useState({x: 0, y: 0});
+
 	// Draw the image on the canvas
 	const drawImage = () => {
 		const canvas = canvasRef.current;
@@ -44,8 +55,6 @@ const EditLayout = () => {
 
 		const startX = startPos.x;
 		const startY = startPos.y;
-
-		console.log("startX", startX, "startY", startY)
 
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -97,6 +106,7 @@ const EditLayout = () => {
 		}));
 
 		setBoxes(() => canvasData.boxes);
+		setStaffLines(() => canvasData.staff_lines);
 
         image.onload = () => {
 			drawImage();
@@ -144,6 +154,100 @@ const EditLayout = () => {
 		}));
 	}
 
+	// Insert the cut images into local storage
+	const insertCutImage = (cutImages) => {
+		const retrievedData = JSON.parse(localStorage.getItem('images'));
+		const originalIndex = retrievedData.findIndex((image) => image.page === page && image.zone === zone);
+
+		// Set the filename for the new images
+		const filename = retrievedData[originalIndex].filename;
+		cutImages.forEach((image) => {
+			image.filename = filename;
+		});
+
+		// Delete the original image and insert two new images
+		retrievedData.splice(originalIndex, 1, ...cutImages);
+
+		// Update the zone count
+		let zoneCount = 1;
+		retrievedData.forEach((image) => {
+			if (image.page === page) {
+				image.zone = zoneCount++;
+			}
+		});
+
+		localStorage.setItem('images', JSON.stringify(retrievedData));
+
+	}
+
+	// Cut image into two halves
+	const cutImage = () => {
+		const tempCanvas = document.createElement('canvas');
+		const tempCtx = tempCanvas.getContext('2d');
+
+		// Set the canvas size to the image size
+		const width = image.width;
+		const height = image.height;
+		tempCanvas.width = width;
+		tempCanvas.height = cutPosition.y / scale;
+		
+		// Above half
+		tempCtx.drawImage(image, 0, 0, width, cutPosition.y / scale, 0, 0, width, cutPosition.y / scale);
+		const aboveHalf = tempCanvas.toDataURL('image/png').replace("data:image/png;base64,", "");
+
+		// Clear the canvas
+		tempCtx.clearRect(0, 0, width, height);
+
+		// Update the height
+		tempCanvas.height = height - cutPosition.y / scale;
+
+		// Below half
+		tempCtx.drawImage(image, 0, cutPosition.y / scale, width, height - cutPosition.y / scale, 0, 0, width, height - cutPosition.y / scale);
+		const belowHalf = tempCanvas.toDataURL('image/png').replace("data:image/png;base64,", "");
+
+		// Create boxes for the above and below halves
+		const aboveHalfBoxes = boxes.map((symbol) => {
+			return symbol.filter((box) => box[3] <= cutPosition.y / scale);
+		});
+
+		const belowHalfBoxes = boxes.map((symbol) => {
+			return symbol.filter((box) => box[1] >= cutPosition.y / scale).map((box) => {
+				return [box[0], box[1] - cutPosition.y / scale, box[2], box[3] - cutPosition.y / scale];
+			});
+		});
+
+		// Create staff lines for the above and below halves
+		const aboveHalfStaffLines = staffLines.filter((line) => line[1] <= cutPosition.y / scale);
+		const belowHalfStaffLines = staffLines.filter((line) => line[1] >= cutPosition.y / scale).map((line) => {
+			return [line[0], line[1] - cutPosition.y / scale, line[2], line[3] - cutPosition.y / scale];
+		});
+
+		// Create a map for the above and below halves
+		const aboveHalfMap = {
+			filename: "",
+			page: page,
+			zone: zone,
+			image: aboveHalf,
+			boxes: aboveHalfBoxes,
+			staff_lines: aboveHalfStaffLines,
+		};
+
+		const belowHalfMap = {
+			filename: "",
+			page: page,
+			zone: zone,
+			image: belowHalf,
+			boxes: belowHalfBoxes,
+			staff_lines: belowHalfStaffLines,
+		}
+
+		// Insert the cut images into local storage
+		insertCutImage([aboveHalfMap, belowHalfMap]);
+
+		// Exit the page
+		navigate(-1);
+	}
+
 	// Redraw image on scale and drag changes
 	useEffect(() => {
 		if (!image.src) return;
@@ -152,8 +256,10 @@ const EditLayout = () => {
 			drawImage();
 		} else if (workingMode === CANVAS_MODE.EDIT) {
 			drawImageWithFocus();
+		} else if (workingMode === CANVAS_MODE.CUT) {
+			setFocusBoxIndex({symbolIndex: -1, boxIndex: -1});
 		}
-	}, [scale, startPos, boxes]);
+	}, [scale, startPos, boxes, workingMode]);
 
 	const getRelativeCoords = (e) => {
 		const canvas = canvasRef.current;
@@ -162,216 +268,6 @@ const EditLayout = () => {
 		const y = e.clientY - rect.top;
 
 		return {x, y};
-	}
-
-	const handleWheel = (e) => {
-		if (e.deltaY < 0) {
-			handleZoomIn();
-		} else {
-			handleZoomOut();
-		}
-	}
-
-	const handleMouseDown = (e) => {
-		const coords = getRelativeCoords(e);
-
-		if (workingMode === CANVAS_MODE.DRAG) {
-			draggingRef.current = true;
-
-			// Set the anchor point to the current mouse position
-			setAnchor({
-				x: coords.x,
-				y: coords.y,
-			});
-		} else {
-			// Adjust the coordinates based on the starting position
-			coords.x = coords.x - startPos.x;
-			coords.y = coords.y - startPos.y;
-
-			// Check if the click is within the the focus box
-			if (focusBoxIndex.symbolIndex !== -1 && focusBoxIndex.boxIndex !== -1) {
-				console.log("Click inside box", focusBoxIndex.symbolIndex, focusBoxIndex.boxIndex)
-				const focusBox = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
-				const x1 = focusBox[0] * scale, y1 = focusBox[1] * scale;
-				const x2 = focusBox[2] * scale, y2 = focusBox[1] * scale;
-				const x3 = focusBox[2] * scale, y3 = focusBox[3] * scale;
-				const x4 = focusBox[0] * scale, y4 = focusBox[3] * scale;
-
-				// Check if the click is within the handles (to resize) or inside the box (to move)
-				const handleEdge = 8;
-				let isValidZone = false;
-
-				if (Math.abs(coords.x - x1) <= handleEdge && Math.abs(coords.y - y1) <= handleEdge) {
-					isValidZone = true;
-					resizingRef.current = true;
-					setBoxZone(BOX_ZONE.TOP_LEFT);
-				} else if (Math.abs(coords.x - x2) <= handleEdge && Math.abs(coords.y - y2) <= handleEdge) {
-					isValidZone = true;
-					resizingRef.current = true;
-					setBoxZone(BOX_ZONE.TOP_RIGHT);
-				} else if (Math.abs(coords.x - x3) <= handleEdge && Math.abs(coords.y - y3) <= handleEdge) {
-					isValidZone = true;
-					resizingRef.current = true;
-					setBoxZone(BOX_ZONE.BOTTOM_RIGHT);
-				} else if (Math.abs(coords.x - x4) <= handleEdge && Math.abs(coords.y - y4) <= handleEdge) {
-					isValidZone = true;
-					resizingRef.current = true;
-					setBoxZone(BOX_ZONE.BOTTOM_LEFT);
-				} else if (coords.x >= x1 && coords.x <= x3 && coords.y >= y1 && coords.y <= y3) {
-					isValidZone = true;
-					resizingRef.current = true;
-					setBoxZone(BOX_ZONE.INSIDE);
-				}
-
-				if (isValidZone) return;
-			}
-			
-			// If the click is not within the focus box, do not proceed resizing or moving
-			setBoxZone(BOX_ZONE.OUTSIDE);
-			setFocusBoxIndex({symbolIndex: -1, boxIndex: -1});
-
-			let isInsideBox = false;
-
-			// Check if the click is within the bounds of any of the boxes
-			boxes.forEach((symbol, index) => {
-				if (symbol.length > 0) {
-					symbol.forEach((box, _) => {
-						const b_x = box[0] * scale;
-						const b_y = box[1] * scale;
-						const b_width = (box[2] - box[0]) * scale;
-						const b_height = (box[3] - box[1]) * scale;
-
-						if (coords.x >= b_x && coords.x <= b_x + b_width && coords.y >= b_y && coords.y <= b_y + b_height) {
-							setFocusBoxIndex({symbolIndex: index, boxIndex: _});
-							setPrevFocusBoxIndex({symbolIndex: index, boxIndex: _});
-							setSearchText(CLASS_NAMES[index]);
-							isInsideBox = true;
-							return;
-						}
-					})
-				}
-
-				if (isInsideBox) return;
-			})
-
-			// If the click is not within any of the boxes, redraw the image
-			if (!isInsideBox) {
-				console.log("Click outside box")
-				// Create a new box
-				setAnchor({x: coords.x, y: coords.y});
-
-				// Temporarily set the focus box index to the last box in the current symbol
-				setFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length});
-				setPrevFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length});
-				setSearchText(CLASS_NAMES[prevFocusBoxIndex.symbolIndex]);
-				resizingRef.current = true;
-
-				drawImage();
-			}
-		}
-	}
-
-	const handleMouseMove = (e) => {
-		const canvasRect = canvasRef.current.getBoundingClientRect();
-		const coords = getRelativeCoords(e);
-		// console.log(coords.x, coords.y, anchor.x, anchor.y)
-
-		if (workingMode === CANVAS_MODE.DRAG) {
-			if (!draggingRef.current) return;
-
-			// If the mouse moves outside the canvas, stop dragging
-			if (e.clientX < canvasRect.left || e.clientX > canvasRect.right || e.clientY < canvasRef.current.getBoundingClientRect().top || e.clientY > canvasRef.current.getBoundingClientRect().bottom) {
-				draggingRef.current = false;
-				return;
-			}
-
-			// Calculate the new start position based on the difference between the current mouse position and the anchor point
-			setStartPos((prevStartPos) => ({
-				x: prevStartPos.x + (coords.x - anchor.x),
-				y: prevStartPos.y + (coords.y - anchor.y),
-			}));
-
-			// Update the anchor point
-			setAnchor({ x: coords.x, y: coords.y })
-		} else {
-			if (!resizingRef.current) return;
-
-			// Adjust the coordinates based on the starting position
-			coords.x = coords.x - startPos.x;
-			coords.y = coords.y - startPos.y;
-
-			if (boxZone === BOX_ZONE.OUTSIDE) {
-				// If the box is being created, its corners' coordinate should not be limited to the image boundaries. 
-				const x1 = Math.min(anchor.x, coords.x) / scale;
-				const y1 = Math.min(anchor.y, coords.y) / scale;
-				const x2 = Math.max(anchor.x, coords.x) / scale;
-				const y2 = Math.max(anchor.y, coords.y) / scale;
-
-				const newBox = [x1, y1, x2, y2];
-
-				setBoxes((prevBoxes) => {
-					const updatedBoxes = [...prevBoxes];
-					
-					// If the box was not created, add a new box to the current symbol
-					if (prevFocusBoxIndex.boxIndex === boxes[prevFocusBoxIndex.symbolIndex].length) {
-						updatedBoxes[prevFocusBoxIndex.symbolIndex].push(newBox);
-					} else {
-						// Otherwise, update the box
-						updatedBoxes[prevFocusBoxIndex.symbolIndex][prevFocusBoxIndex.boxIndex] = newBox;
-					}
-					return updatedBoxes;
-				});
-
-			} else {
-				// If the box is being resized, its corners' coordinate should be limited to the image boundaries.
-				const focusBox = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
-
-				// Resize the box. On each corner resizing, the opposite corner should remain fixed
-				if (boxZone === BOX_ZONE.TOP_LEFT) {
-					focusBox[0] = Math.min(focusBox[2], Math.max(0, coords.x / scale));
-					focusBox[1] = Math.min(focusBox[3], Math.max(0, coords.y / scale));
-				} else if (boxZone === BOX_ZONE.TOP_RIGHT) {
-					focusBox[1] = Math.min(focusBox[3], Math.max(0, coords.y / scale));
-					focusBox[2] = Math.max(focusBox[0], Math.min(image.width, coords.x / scale));
-				} else if (boxZone === BOX_ZONE.BOTTOM_RIGHT) {
-					focusBox[2] = Math.max(focusBox[0], Math.min(image.width, coords.x / scale));
-					focusBox[3] = Math.max(focusBox[1], Math.min(image.height, coords.y / scale));
-				} else if (boxZone === BOX_ZONE.BOTTOM_LEFT) {
-					focusBox[0] = Math.min(focusBox[2], Math.max(0, coords.x / scale));
-					focusBox[3] = Math.max(focusBox[1], Math.min(image.height, coords.y / scale));
-				} else if (boxZone === BOX_ZONE.INSIDE) {
-					const b_width = focusBox[2] - focusBox[0];
-					const b_height = focusBox[3] - focusBox[1];
-	
-					// Limit the box to the image boundaries so that it keeps the size when touching the edges
-					focusBox[0] = Math.min(image.width - b_width, Math.max(0, coords.x / scale - b_width / 2));
-					focusBox[1] = Math.min(image.height - b_height, Math.max(0, coords.y / scale - b_height / 2));
-					focusBox[2] = Math.min(image.width, Math.max(b_width, coords.x / scale + b_width / 2));
-					focusBox[3] = Math.min(image.height, Math.max(b_height, coords.y / scale + b_height / 2));
-				}
-	
-				setBoxes((prevBoxes) => {
-					const updatedBoxes = [...prevBoxes];
-					updatedBoxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex] = focusBox;
-					return updatedBoxes;
-				});
-			}
-
-		}
-	}
-
-	const handleMouseUp = (e) => {
-		if (workingMode === CANVAS_MODE.DRAG) {
-			draggingRef.current = false;
-		} else if (workingMode === CANVAS_MODE.EDIT) {
-			resizingRef.current = false;
-			
-			// If the box was not created, reset the focus box index
-			if (prevFocusBoxIndex.boxIndex === boxes[prevFocusBoxIndex.symbolIndex].length) {
-				setFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length - 1});
-				setPrevFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length - 1});
-			}
-		}
 	}
 
 	const drawImageWithFocus = () => {
@@ -490,6 +386,258 @@ const EditLayout = () => {
 		ctx.translate(-startPos.x, -startPos.y);
 	}
 
+	const handleWheel = (e) => {
+		if (e.deltaY < 0) {
+			handleZoomIn();
+		} else {
+			handleZoomOut();
+		}
+	}
+
+	const handleMouseDown = (e) => {
+		const coords = getRelativeCoords(e);
+
+		if (workingMode === CANVAS_MODE.DRAG) {
+			draggingRef.current = true;
+
+			// Set the anchor point to the current mouse position
+			setAnchor({
+				x: coords.x,
+				y: coords.y,
+			});
+		} else {
+			// Adjust the coordinates based on the starting position
+			coords.x = coords.x - startPos.x;
+			coords.y = coords.y - startPos.y;
+
+			// Check if the click is within the the focus box
+			if (focusBoxIndex.symbolIndex !== -1 && focusBoxIndex.boxIndex !== -1) {
+				const focusBox = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
+				console.log("Click inside box", focusBoxIndex.symbolIndex, focusBoxIndex.boxIndex, focusBox);
+				const x1 = focusBox[0] * scale, y1 = focusBox[1] * scale;
+				const x2 = focusBox[2] * scale, y2 = focusBox[1] * scale;
+				const x3 = focusBox[2] * scale, y3 = focusBox[3] * scale;
+				const x4 = focusBox[0] * scale, y4 = focusBox[3] * scale;
+
+
+				// Check if the click is within the handles (to resize) or inside the box (to move)
+				const handleEdge = 8;
+				let isValidZone = false;
+
+				if (Math.abs(coords.x - x1) <= handleEdge && Math.abs(coords.y - y1) <= handleEdge) {
+					isValidZone = true;
+					resizingRef.current = true;
+					setBoxZone(BOX_ZONE.TOP_LEFT);
+				} else if (Math.abs(coords.x - x2) <= handleEdge && Math.abs(coords.y - y2) <= handleEdge) {
+					isValidZone = true;
+					resizingRef.current = true;
+					setBoxZone(BOX_ZONE.TOP_RIGHT);
+				} else if (Math.abs(coords.x - x3) <= handleEdge && Math.abs(coords.y - y3) <= handleEdge) {
+					isValidZone = true;
+					resizingRef.current = true;
+					setBoxZone(BOX_ZONE.BOTTOM_RIGHT);
+				} else if (Math.abs(coords.x - x4) <= handleEdge && Math.abs(coords.y - y4) <= handleEdge) {
+					isValidZone = true;
+					resizingRef.current = true;
+					setBoxZone(BOX_ZONE.BOTTOM_LEFT);
+				} else if (coords.x >= x1 && coords.x <= x3 && coords.y >= y1 && coords.y <= y3) {
+					isValidZone = true;
+					resizingRef.current = true;
+					setBoxZone(BOX_ZONE.INSIDE);
+				}
+
+				if (isValidZone) return;
+			}
+			
+			// If the click is not within the focus box, do not proceed resizing or moving
+			setBoxZone(BOX_ZONE.OUTSIDE);
+			setFocusBoxIndex({symbolIndex: -1, boxIndex: -1});
+
+			let isInsideBox = false;
+
+			// Check if the click is within the bounds of any of the boxes
+			boxes.forEach((symbol, index) => {
+				if (symbol.length > 0) {
+					symbol.forEach((box, _) => {
+						const b_x = box[0] * scale;
+						const b_y = box[1] * scale;
+						const b_width = (box[2] - box[0]) * scale;
+						const b_height = (box[3] - box[1]) * scale;
+
+						if (coords.x >= b_x && coords.x <= b_x + b_width && coords.y >= b_y && coords.y <= b_y + b_height) {
+							setFocusBoxIndex({symbolIndex: index, boxIndex: _});
+							setPrevFocusBoxIndex({symbolIndex: index, boxIndex: _});
+							setSearchText(CLASS_NAMES[index]);
+							isInsideBox = true;
+							return;
+						}
+					})
+				}
+
+				if (isInsideBox) return;
+			})
+
+			// If the click is not within any of the boxes, redraw the image
+			if (!isInsideBox) {
+				console.log("Click outside box")
+				// Create a new box
+				setAnchor({x: coords.x, y: coords.y});
+
+				// Temporarily set the focus box index to the last box in the current symbol
+				setFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length});
+				setPrevFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length});
+				setSearchText(CLASS_NAMES[prevFocusBoxIndex.symbolIndex]);
+				resizingRef.current = true;
+
+				drawImage();
+			}
+		}
+	}
+
+	const handleMouseMove = (e) => {
+		const canvasRect = canvasRef.current.getBoundingClientRect();
+		const coords = getRelativeCoords(e);
+		// console.log(coords.x, coords.y, anchor.x, anchor.y)
+
+		if (workingMode === CANVAS_MODE.DRAG) {
+			if (!draggingRef.current) return;
+
+			// If the mouse moves outside the canvas, stop dragging
+			if (e.clientX < canvasRect.left || e.clientX > canvasRect.right || e.clientY < canvasRef.current.getBoundingClientRect().top || e.clientY > canvasRef.current.getBoundingClientRect().bottom) {
+				draggingRef.current = false;
+				return;
+			}
+
+			// Calculate the new start position based on the difference between the current mouse position and the anchor point
+			setStartPos((prevStartPos) => ({
+				x: prevStartPos.x + (coords.x - anchor.x),
+				y: prevStartPos.y + (coords.y - anchor.y),
+			}));
+
+			// Update the anchor point
+			setAnchor({ x: coords.x, y: coords.y })
+		} else if (workingMode === CANVAS_MODE.EDIT) {
+			if (!resizingRef.current) return;
+
+			// Adjust the coordinates based on the starting position
+			coords.x = coords.x - startPos.x;
+			coords.y = coords.y - startPos.y;
+
+			if (boxZone === BOX_ZONE.OUTSIDE) {
+				// If the box is being created, its corners' coordinate should not be limited to the image boundaries. 
+				const x1 = Math.min(anchor.x, coords.x) / scale;
+				const y1 = Math.min(anchor.y, coords.y) / scale;
+				const x2 = Math.max(anchor.x, coords.x) / scale;
+				const y2 = Math.max(anchor.y, coords.y) / scale;
+
+				const newBox = [x1, y1, x2, y2];
+
+				// If the box is too small, do not create it
+				if (x2 - x1 < 5 || y2 - y1 < 5) {
+					console.log("Box too small")
+					return;
+				}
+
+				setBoxes((prevBoxes) => {
+					const updatedBoxes = [...prevBoxes];
+					
+					// If the box was not created, add a new box to the current symbol
+					if (prevFocusBoxIndex.boxIndex === boxes[prevFocusBoxIndex.symbolIndex].length) {
+						updatedBoxes[prevFocusBoxIndex.symbolIndex].push(newBox);
+					} else {
+						// Otherwise, update the box
+						updatedBoxes[prevFocusBoxIndex.symbolIndex][prevFocusBoxIndex.boxIndex] = newBox;
+					}
+					return updatedBoxes;
+				});
+
+				console.log("New box", newBox);
+
+			} else {
+				// If the box is being resized, its corners' coordinate should be limited to the image boundaries.
+				const focusBox = boxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex];
+
+				// Resize the box. On each corner resizing, the opposite corner should remain fixed
+				if (boxZone === BOX_ZONE.TOP_LEFT) {
+					focusBox[0] = Math.min(focusBox[2], Math.max(0, coords.x / scale));
+					focusBox[1] = Math.min(focusBox[3], Math.max(0, coords.y / scale));
+				} else if (boxZone === BOX_ZONE.TOP_RIGHT) {
+					focusBox[1] = Math.min(focusBox[3], Math.max(0, coords.y / scale));
+					focusBox[2] = Math.max(focusBox[0], Math.min(image.width, coords.x / scale));
+				} else if (boxZone === BOX_ZONE.BOTTOM_RIGHT) {
+					focusBox[2] = Math.max(focusBox[0], Math.min(image.width, coords.x / scale));
+					focusBox[3] = Math.max(focusBox[1], Math.min(image.height, coords.y / scale));
+				} else if (boxZone === BOX_ZONE.BOTTOM_LEFT) {
+					focusBox[0] = Math.min(focusBox[2], Math.max(0, coords.x / scale));
+					focusBox[3] = Math.max(focusBox[1], Math.min(image.height, coords.y / scale));
+				} else if (boxZone === BOX_ZONE.INSIDE) {
+					const b_width = focusBox[2] - focusBox[0];
+					const b_height = focusBox[3] - focusBox[1];
+	
+					// Limit the box to the image boundaries so that it keeps the size when touching the edges
+					focusBox[0] = Math.min(image.width - b_width, Math.max(0, coords.x / scale - b_width / 2));
+					focusBox[1] = Math.min(image.height - b_height, Math.max(0, coords.y / scale - b_height / 2));
+					focusBox[2] = Math.min(image.width, Math.max(b_width, coords.x / scale + b_width / 2));
+					focusBox[3] = Math.min(image.height, Math.max(b_height, coords.y / scale + b_height / 2));
+				}
+
+				// If the box is too small, do not resize it
+				if (focusBox[2] - focusBox[0] < 5 || focusBox[3] - focusBox[1] < 5) return;
+	
+				setBoxes((prevBoxes) => {
+					const updatedBoxes = [...prevBoxes];
+					updatedBoxes[focusBoxIndex.symbolIndex][focusBoxIndex.boxIndex] = focusBox;
+					return updatedBoxes;
+				});
+			}
+
+		} else if (workingMode === CANVAS_MODE.CUT) {
+			// Don't draw the dashed line if the mouse is outside the image
+			if (coords.x < startPos.x || coords.x > image.width * scale + startPos.x || coords.y < startPos.y || coords.y > image.height * scale + startPos.y) return;
+
+			// Stick a dashed line to the mouse cursor
+			const canvas = canvasRef.current;
+			const ctx = canvas.getContext('2d');
+
+			drawImageWithFocus();
+		
+			ctx.beginPath();
+			ctx.setLineDash([10, 5]); // Dashed line pattern
+			ctx.moveTo(startPos.x, coords.y); // Fixed starting point
+			ctx.lineTo(image.width * scale + startPos.x, coords.y); // Follow the mouse cursor
+			ctx.strokeStyle = "red";
+			ctx.lineWidth = 2;
+			ctx.stroke();
+
+			// Reset the line to a solid line
+			ctx.setLineDash([]);
+
+			ctx.closePath();
+
+		}
+	}
+
+	const handleMouseUp = (e) => {
+		if (workingMode === CANVAS_MODE.DRAG) {
+			draggingRef.current = false;
+		} else if (workingMode === CANVAS_MODE.EDIT) {
+			resizingRef.current = false;
+			
+			// If the box was not created, reset the focus box index
+			if (prevFocusBoxIndex.boxIndex === boxes[prevFocusBoxIndex.symbolIndex].length) {
+				setFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length - 1});
+				setPrevFocusBoxIndex({symbolIndex: prevFocusBoxIndex.symbolIndex, boxIndex: boxes[prevFocusBoxIndex.symbolIndex].length - 1});
+			}
+		} else if (workingMode === CANVAS_MODE.CUT) {
+			const coords = getRelativeCoords(e);
+			setCutPosition({x: coords.x - startPos.x, y: coords.y - startPos.y});
+			console.log("Cut position", coords.x - startPos.x, coords.y - startPos.y, image.width * scale, image.height * scale)
+
+			// Show the confirmation dialog
+			setDialogOpen(true);
+		}
+	}
+
 	// Resize the box when the focusBoxIndex changes
 	useEffect(() => {
 		if (focusBoxIndex.symbolIndex !== -1 && focusBoxIndex.boxIndex !== -1) {
@@ -507,6 +655,8 @@ const EditLayout = () => {
 		dragModeRef.current.children[0].classList.remove("text-black");
 		editModeRef.current.classList.remove("bg-zinc-300");
 		editModeRef.current.children[0].classList.remove("text-black");
+		cutModeRef.current.classList.remove("bg-zinc-300");
+		cutModeRef.current.children[0].classList.remove("text-black");
 
 		if (e.target === dragModeRef.current) {
 			dragModeRef.current.classList.add("bg-zinc-300");
@@ -516,6 +666,10 @@ const EditLayout = () => {
 			editModeRef.current.classList.add("bg-zinc-300");
 			editModeRef.current.children[0].classList.add("text-black");
 			setWorkingMode(CANVAS_MODE.EDIT);
+		} else if (e.target === cutModeRef.current) {
+			cutModeRef.current.classList.add("bg-zinc-300");
+			cutModeRef.current.children[0].classList.add("text-black");
+			setWorkingMode(CANVAS_MODE.CUT);
 		}
 	}
 
@@ -593,6 +747,15 @@ const EditLayout = () => {
 		searchBoxRef.current.value = searchText;
 	}, [searchText]);
 
+	const handleDelete = () => {
+		const retrievedData = JSON.parse(localStorage.getItem('images'));
+
+		const updatedData = retrievedData.filter((image) => image.page !== page || image.zone !== zone);
+
+		localStorage.setItem('images', JSON.stringify(updatedData));
+		navigate(-1);
+	}
+
 	const handleReset = () => {
 		const retrievedData = JSON.parse(localStorage.getItem('images'));
 		const canvasData = retrievedData.find((image) => image.page === page && image.zone === zone);
@@ -614,6 +777,15 @@ const EditLayout = () => {
 		})
 
 		localStorage.setItem('images', JSON.stringify(updatedData));
+	}
+
+	const handleDialogConfirm = () => {
+		setDialogOpen(false);
+		cutImage();
+	}
+
+	const handleDialogCancel = () => {
+		setDialogOpen(false);
 	}
 
 	return (
@@ -656,17 +828,20 @@ const EditLayout = () => {
 						<h1 className='text-white text-lg'>{image.alt}</h1>
 					</div>
 					<div className='flex items-center'>
-						<div className='w-15 bg-transparent mx-1 rounded-md border border-2 border-primary text-xs text-center text-white p-2 cursor-pointer hover:bg-primary transition-all duration-100 ease' onClick={handleReset}>
+						<div className='w-16 bg-transparent mx-1 rounded-md border border-2 border-primary text-xs text-center text-white p-2 cursor-pointer hover:bg-primary transition-all duration-100 ease' onClick={handleDelete}>
+							<h1>Delete</h1>
+						</div>
+						<div className='w-16 bg-transparent mx-1 rounded-md border border-2 border-primary text-xs text-center text-white p-2 cursor-pointer hover:bg-primary transition-all duration-100 ease' onClick={handleReset}>
 							<h1>Reset</h1>
 						</div>
-						<div className='w-15 bg-zinc-300 mx-1 rounded-md border border-2 border-primary text-xs text-center text-black p-2 cursor-pointer hover:bg-zinc-400 transition-all duration-100 ease' onClick={handleSave}>
+						<div className='w-16 bg-zinc-300 mx-1 rounded-md border border-2 border-primary text-xs text-center text-black p-2 cursor-pointer hover:bg-zinc-400 transition-all duration-100 ease' onClick={handleSave}>
 							<h1>Save</h1>
 						</div>
 					</div>
 				</div>
 				<canvas ref={canvasRef} className='w-full h-full' onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
 				</canvas>
-				<div className='absolute bottom-3 left-[50%] -translate-x-[50%] h-10 bg-secondary mx-auto mt-4 rounded-lg grid grid-cols-2'>
+				<div className='absolute bottom-3 left-[50%] -translate-x-[50%] h-10 bg-secondary mx-auto mt-4 rounded-lg grid grid-cols-3'>
 					<div className='w-10 flex items-center justify-center bg-zinc-300 rounded-md m-1 cursor-pointer transition-all duration-300 ease' ref={dragModeRef} onClick={handleModeSwitch}>
 						<h1 className='text-sm text-black font-semibold pointer-events-none transition-all duration-300 ease'>
 							<OpenWithIcon />
@@ -677,7 +852,19 @@ const EditLayout = () => {
 							<CropFreeIcon />
 						</h1>
 					</div>
+					<div className='w-10 flex items-center justify-center rounded-md m-1 cursor-pointer transition-all duration-300 ease' ref={cutModeRef} onClick={handleModeSwitch}>
+						<h1 className='text-sm font-semibold pointer-events-none transition-all duration-300 ease'>
+							<ContentCutIcon />
+						</h1>
+					</div>
 				</div>
+
+				<ConfirmDialog message={
+					<>
+						<h1 className='text-md pb-1'>Are you sure you want to cut the image?</h1>
+						<p className='text-sm opacity-[70%]'>This action cannot be undone.</p>
+					</>
+				} isOpen={isDialogOpen} setIsOpen={setDialogOpen} onConfirm={handleDialogConfirm} onCancel={handleDialogCancel} />
 			</div>
 
 		</div>

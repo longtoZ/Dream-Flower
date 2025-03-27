@@ -26,6 +26,7 @@ export const CLASS_COLORS = [
 export const CANVAS_MODE = {
     DRAG: "drag",
     EDIT: "edit",
+    CUT: "cut",
 }
 
 export const BOX_ZONE = {

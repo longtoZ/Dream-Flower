@@ -21,6 +21,7 @@ const ExtractLayout = () => {
 			setImages(JSON.parse(storedImages));
 			console.log("Stored images loaded from session storage");
 		}
+
 	}, []);
 
 	const handleDrop = (e) => {

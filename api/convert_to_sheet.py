@@ -44,13 +44,14 @@ NOTES_ON_SCALE = {
 with open("json/data.json", "r") as f:
     full_data = json.load(f)
 
-data = full_data[5]
+data = full_data[0]
 
 # --------------------------------- Extracting Staff Lines ---------------------------------
 staff_lines = data["staff_lines"]
 treble_staff_lines = {}
 bass_staff_lines = {}
 
+print(staff_lines[0], staff_lines[1])
 line_space = staff_lines[1][1] - staff_lines[0][1]
 
 # Extend 3 more staff lines for treble clef above
@@ -153,6 +154,16 @@ for key in bass_zones:
 
 # Barlines are used for both treble and bass zones
 bass_zones["barline"] = treble_zones["barline"]
+
+# For each dotted note, we reduce the width of the box to 2/3
+for note in treble_zones["note"]:
+    if (note["symbol"].count("dotted") > 0):
+        note["box"][2] = note["box"][0] + (note["box"][2] - note["box"][0]) * 2/3
+
+for note in bass_zones["note"]:
+    if (note["symbol"].count("dotted") > 0):
+        note["box"][2] = note["box"][0] + (note["box"][2] - note["box"][0]) * 2/3
+
 
 print(len(treble_zones["note"]), len(treble_zones["flag"]), len(treble_zones["beam"]), len(treble_zones["rest"]), len(treble_zones["sharp"]), len(treble_zones["flat"]), len(treble_zones["natural"]), len(treble_zones["clef"]), len(treble_zones["barline"]))
 print(len(bass_zones["note"]), len(bass_zones["flag"]), len(bass_zones["beam"]), len(bass_zones["rest"]), len(bass_zones["sharp"]), len(bass_zones["flat"]), len(bass_zones["natural"]), len(bass_zones["clef"]), len(bass_zones["barline"]))
@@ -259,7 +270,7 @@ def generate_symbol_data(zone_name, zones, staff_lines_list, spare_staff_lines_l
 
             # Collect notes occurring in the same column. The second condition is used to handle
             # the case where the note is in the same column but doesn't have enough space to stand. So, it must shift to the right 
-            if (abs(curr_coord[0] - prev_coord[0]) < line_space or curr_coord[0] <= prev_coord[2]):
+            if (abs(curr_coord[0] - prev_coord[0]) <= line_space/2 or curr_coord[0] <= prev_coord[2]):
                 notes.append(zones["note"][note_idx])
             else:
                 # Sort notes based on their y-coordinate
@@ -327,6 +338,7 @@ bass_staff_lines_list_modified = [(treble_staff_lines_list[i][0], bass_staff_lin
 treble_cleves_coords = [treble_zones["clef"][i]["box"][0] for i in range(1, len(treble_zones["clef"]))]
 bass_cleves_coords = [bass_zones["clef"][i]["box"][0] for i in range(1, len(bass_zones["clef"]))]
 
+print(bass_zones["clef"])
 if (treble_zones["clef"][0]["symbol"] == "bass_clef"):
     generate_symbol_data("treble_zone", treble_zones, treble_staff_lines_list_modified, treble_staff_lines_list, treble_cleves_coords)
 else:
@@ -341,8 +353,10 @@ else:
 # --------------------------------- Determine Note's Duration ---------------------------------
 # Determine note's duration by checking the flag symbol
 def generate_note_duration(zone_name, zone):
+    last_valid_note_idx = 0
     note_idx = 0
     flag_idx = 0
+    max_space = line_space * (3/4)
 
     # Combine the flag and beam symbols into one list
     flag_beam_list = zone["flag"] + zone["beam"]
@@ -352,9 +366,13 @@ def generate_note_duration(zone_name, zone):
         while (flag_idx < len(flag_beam_list)):
             curr_flag = flag_beam_list[flag_idx]
 
+            if (curr_flag["symbol"].count("sixteenth") > 0):
+                print("Sixteenth beam:", curr_flag)
+
             # Iterate through the notes and find the note that is right in front of the flag
             while (note_idx < len(sheet[zone_name])):
                 curr_note = sheet[zone_name][note_idx]
+                print("Idx:", note_idx, flag_idx)
 
                 # Do not update if the flag type is already set
                 if (len(curr_note["flag_type"]) != 0):
@@ -364,9 +382,8 @@ def generate_note_duration(zone_name, zone):
                 
                 # If the current symbol is flag, update one note
                 if (curr_flag["symbol"].count("flag") > 0):
-                    
                     # Check if the flag's box is in acceptable range of the note's x-coordinate
-                    if (abs(curr_flag["box"][0] - curr_note["x1"]) <= line_space or abs(curr_flag["box"][0] - curr_note["x2"]) <= line_space):
+                    if (abs(curr_flag["box"][0] - curr_note["x1"]) <= max_space or abs(curr_flag["box"][0] - curr_note["x2"]) <= max_space):
                         # Only update the flag type if the note head type is a quarter note. Half note and whole note do not have flags
                         if (curr_note["head_type"] == "quarter_note"):
                             curr_note["flag_type"] = curr_flag["symbol"].replace("_flag", "")
@@ -375,59 +392,125 @@ def generate_note_duration(zone_name, zone):
                 
                 # If the current symbol is beam, update two notes
                 elif (curr_flag["symbol"].count("beam") > 0):
-
-                    # Add two variables for each beam to check for availablity of the beginning and the end of the beam
+                    # Ttwo variables for each beam to check for availablity of the beginning and the end of the beam
                     curr_flag["start_available"] = True
                     curr_flag["end_available"] = True
+
+                    # Variable to check the turned side of the notes
+                    # All notes in the beam are turned to one side only. Therefore, the next note must be turned to the same side
+                    curr_flag["turned_side"] = ""
+
+                    curr_beam = curr_flag
+                    next_note = sheet[zone_name][note_idx + 1] if note_idx < len(sheet[zone_name]) - 1 else None
+                    start_note_set = False
+                    end_note_set = False
                 
                     if (flag_idx - 1 >= 0):
                         prev_flag = flag_beam_list[flag_idx - 1]
                         if (prev_flag["symbol"].count("beam") > 0 and curr_flag["box"][0] <= prev_flag["box"][2]):
                             curr_flag["start_available"] = prev_flag["end_available"]
-                            
+                            curr_flag["turned_side"] = prev_flag["turned_side"]
+                    
+
                     # Variables to handle 3 cases of the note's position in the beam
                     curr_beam = curr_flag
                     next_note = sheet[zone_name][note_idx + 1] if note_idx < len(sheet[zone_name]) - 1 else None
                     start_note_set = False
                     end_note_set = False
 
+                    # if (curr_note["head_type"].count("dotted") > 0):
+                    #     print("Passed dotted note:", curr_note, curr_beam)
+                
+
+                    # Calculate the distance between the beginning of the beam and the note
+                    beam_start_box_start = abs(curr_beam["box"][0] - curr_note["x1"])
+                    beam_start_box_end = abs(curr_beam["box"][0] - curr_note["x2"])
+
                     # If there is a note presenting at the beginning of the beam
-                    if (abs(curr_beam["box"][0] - curr_note["x1"]) <= line_space or abs(curr_beam["box"][0] - curr_note["x2"]) <= line_space):
-                        if (curr_flag["start_available"]):
+                    if (beam_start_box_start <= max_space or beam_start_box_end <= max_space):
+                        print("Beam start box start:", beam_start_box_start)
+                        print("Beam start box end:", beam_start_box_end)
+                        if (curr_flag["start_available"] and curr_note["head_type"].count("quarter_note") > 0):
                             start_note_set = True
                             curr_flag["start_available"] = False
 
-                            if (curr_note["head_type"] == "quarter_note"):
-                                curr_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
-                                # print("Current note at the beginning")
-                                # print("Set beam for", curr_note)
+                            curr_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
+                            # print("Current note at the beginning")
+                            # print("Set beam for", curr_note)
+
+                            # Set the turned side of the first note. The next note must be turned to the same side
+                            if (beam_start_box_start <= max_space):
+                                curr_flag["turned_side"] = "right"
+                                print("Set start right side")
+                            elif (beam_start_box_end <= max_space):
+                                curr_flag["turned_side"] = "left"
+                                print("Set start left side")
                     
+                    print("Current side:", curr_flag["turned_side"])
+
+                    # Calculate the distance between the end of the beam and the note
+                    beam_end_box_start = abs(curr_beam["box"][2] - curr_note["x1"])
+                    beam_end_box_end = abs(curr_beam["box"][2] - curr_note["x2"])
+
                     # If there is a note presenting at the end of the beam
                     # If there is no note at the beginning, the note at the end must be current note
-                    if (not start_note_set and (abs(curr_beam["box"][2] - curr_note["x1"]) <= line_space or abs(curr_beam["box"][2] - curr_note["x2"]) <= line_space)):
-                        if (curr_flag["end_available"]):
-                            end_note_set = True
-                            curr_flag["end_available"] = False
+                    if (not start_note_set):
+                        if ((curr_flag["turned_side"] == "right" and beam_end_box_start <= max_space) or (curr_flag["turned_side"] == "left" and beam_end_box_end <= max_space)):
+                            print("Beam end box start:", beam_end_box_start)
+                            print("Beam end box end:", beam_end_box_end)
+                            if (curr_flag["end_available"] and curr_note["head_type"].count("quarter_note") > 0):
+                                end_note_set = True
+                                curr_flag["end_available"] = False
 
-                            if (curr_note["head_type"] == "quarter_note"):
                                 curr_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
                                 # print("Current note at the end")
                                 # print("Set beam for", curr_note)
+
+                    beam_end_box_start_next = abs(curr_beam["box"][2] - next_note["x1"]) if next_note is not None else 1000
+                    beam_end_box_end_next = abs(curr_beam["box"][2] - next_note["x2"]) if next_note is not None else 1000
                     
                     # If there is a note presenting at the beginning of the beam, the note at the end must be the next note
-                    if (start_note_set and not end_note_set and next_note is not None and (abs(curr_beam["box"][2] - next_note["x1"]) <= line_space or abs(curr_beam["box"][2] - next_note["x2"]) <= line_space)):
-                        if (curr_flag["end_available"]):
-                            end_note_set = True
-                            curr_flag["end_available"] = False
+                    if (start_note_set and not end_note_set and next_note is not None):
+                        if ((curr_flag["turned_side"] == "right" and beam_end_box_start_next <= max_space) or (curr_flag["turned_side"] == "left" and beam_end_box_end_next <= max_space)):
+                            print("Beam end box start next:", beam_end_box_start_next)
+                            print("Beam end box end next:", beam_end_box_end_next)
+                            if (curr_flag["end_available"] and curr_note["head_type"].count("quarter_note") > 0):
+                                end_note_set = True
+                                curr_flag["end_available"] = False
+                                next_beam = flag_beam_list[flag_idx + 1] if flag_idx < len(flag_beam_list) - 1 else None
 
-                            if (next_note["head_type"] == "quarter_note"):
-                                next_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
+                                # If the next beam is diffrent type from the current beam, set the flag type to the next beam
+                                if (next_beam is not None and next_beam["symbol"].count("beam") > 0 and next_beam["box"][0] < curr_beam["box"][2]):
+                                    next_note["flag_type"] = next_beam["symbol"].replace("_beam", "")
+                                # Otherwise, use the current beam as the flag type
+                                else:
+                                    next_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
+
+                                print("next note:", next_note)
                     #             print("Next note at the end")
                     #             print("Set beam for", next_note)
-                    
-                    # print("\n")
-                    if (start_note_set or end_note_set):
-                        break
+                        else:
+                            print("No note at the end")
+                            curr_flag["end_available"] = False
+
+                    print("Current note:", curr_note)
+                    print("Current beam:", curr_beam)
+
+                    if (start_note_set or end_note_set):   
+                        last_valid_note_idx = note_idx  
+                        print("Last valid note:", last_valid_note_idx)                  
+                        note_idx += 1
+                        break   
+                    else:
+                        # If the beam has no notes and the distance between the note and the beam is too far, skip to the last valid note
+                        if (curr_note["x1"] - curr_beam["box"][2] > max_space):
+                            note_idx = last_valid_note_idx
+                            curr_flag["end_available"] = False
+                            print("Skip to last valid note")  
+                            break
+
+                    print("\n")
+
 
                 note_idx += 1
             
@@ -533,6 +616,7 @@ def verify_measure_duration(zone_name, zone):
     
     # Segments to handle whole_half_rest
     segment_before = 0
+    contains_whole_half_rest = False
 
     for i in range(len(zone)):
         symbol = zone[i]
@@ -555,6 +639,7 @@ def verify_measure_duration(zone_name, zone):
         elif (symbol.get("rest")):
             # If the rest is whole_half_rest, save the segment before the rest and calculate the duration later on
             if (symbol["rest"] == "whole_half"):
+                contains_whole_half_rest = True
                 segment_before = measure_duration
                 measure_duration = 0
             else:
@@ -567,7 +652,7 @@ def verify_measure_duration(zone_name, zone):
                 continue
 
             # Determine the duration for whole_half_rest
-            if (segment_before + measure_duration < measure_playtime):
+            if (contains_whole_half_rest and segment_before + measure_duration < measure_playtime):
                 whole_half_rest_duration = measure_playtime - (segment_before + measure_duration)
 
                 # Find the index of the whole_half_rest symbol in current measure

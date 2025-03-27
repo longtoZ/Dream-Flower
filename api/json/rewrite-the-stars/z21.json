@@ -1,0 +1,337 @@
+{
+    "treble_zone": [
+        [
+            {
+                "notes": [
+                    "As3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4",
+                    "As3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4",
+                    "As3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4",
+                    "A3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4",
+                    "A3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4",
+                    "A3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "rest": "eight"
+            },
+            {
+                "notes": [
+                    "As4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "As4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C5"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D5"
+                ],
+                "head_type": "dotted_quarter_note",
+                "flag_type": ""
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "rest": "whole"
+            },
+            {
+                "barline": "barline"
+            }
+        ]
+    ],
+    "bass_zone": [
+        [
+            {
+                "notes": [
+                    "A2"
+                ],
+                "head_type": "whole_note",
+                "flag_type": ""
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "F2"
+                ],
+                "head_type": "whole_note",
+                "flag_type": ""
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "D4",
+                    "As3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4",
+                    "A3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4",
+                    "As3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "D4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ],
+        [
+            {
+                "notes": [
+                    "D4",
+                    "Ds3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds4",
+                    "As3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds4",
+                    "As3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "Ds4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4",
+                    "G3"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "notes": [
+                    "C4"
+                ],
+                "head_type": "quarter_note",
+                "flag_type": "eight"
+            },
+            {
+                "barline": "barline"
+            }
+        ]
+    ]
+}
