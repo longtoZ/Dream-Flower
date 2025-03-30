@@ -1,22 +1,33 @@
 import os
-import uuid
-from pdf2image import convert_from_path
+import shutil
+import re
 
-def convert_to_images(pdf_path: str) -> list:
-    path = os.path.split(pdf_path)[1]
+# Define source and destination folders
+source_folder = "sounds"
+destination_folder = "sounds_modify"
 
-    output_folder = f"{str(uuid.uuid4())}_{path[:path.rindex('.pdf')]}_images"
+# Ensure the destination folder exists
+os.makedirs(destination_folder, exist_ok=True)
 
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+# Regular expression to match note filenames (e.g., A0.mp3, As1.mp3)
+note_pattern = re.compile(r"([A-Ga-g]s?\d)\.mp3")
 
-    # Convert PDF to images
-    images = convert_from_path(pdf_path, dpi=300, poppler_path="./poppler-24.08.0/Library/bin")
+# Process all files in the source folder
+for filename in os.listdir(source_folder):
+    match = note_pattern.match(filename)
+    if match:
+        note = match.group(1)  # Extract note (e.g., "A0", "As1")
+        base_note = note[:-1]  # Extract note without octave (e.g., "A", "As")
+        octave = int(note[-1])  # Extract octave number
+        
+        new_octave = octave + 1  # Increase the octave by 1
+        new_filename = f"{base_note}{new_octave}.mp3"  # Create new filename
 
-    # Save each page as an image
-    for i, img in enumerate(images):
-        img_path = f"{output_folder}/page_{i}.png"
-        img.save(img_path, "PNG")
-        print(f"Saved {img_path}")
+        # Copy and rename the file to the destination folder
+        shutil.copy(
+            os.path.join(source_folder, filename),
+            os.path.join(destination_folder, new_filename)
+        )
+        print(f"Copied {filename} → {new_filename}")
 
-convert_to_images(r"C:\Users\VICTUS\Downloads\Viva_la_vida_Coldplay_piano.pdf")
+print("✅ All note files have been copied with increased octaves.")
