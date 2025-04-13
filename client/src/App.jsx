@@ -9,6 +9,7 @@ function App() {
 			<Routes>
 				<Route path="/extract" element={<ExtractLayout />} />
 				<Route path="/edit/:id" element={<EditLayout />} />
+				<Route path="/convert-to-sheet/:id" element={<EditLayout />} />
 			</Routes>
 		</Router>
     )

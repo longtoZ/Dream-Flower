@@ -7,7 +7,7 @@ AudioSegment.converter = "ffmpeg-build/bin/ffmpeg.exe"
 AudioSegment.ffmpeg = "ffmpeg-build/bin/ffmpeg.exe"
 AudioSegment.ffprobe = "ffmpeg-build/bin/ffprobe.exe"
 
-measure_playtime = 2000
+measure_playtime = 3000
 note_playtime = {
     "whole": 1 * measure_playtime,
     "half": 0.5 * measure_playtime,
@@ -87,7 +87,7 @@ def generate_audio(zone, zone_name):
 final_audio = AudioSegment.silent(duration=0)
 
 def process_zone(zone_index):
-    with open(f"json/rewrite-the-stars/z{zone_index}.json") as f:
+    with open(f"json/your-lie-in-april/z{zone_index}.json") as f:
         data = json.load(f)
 
     original_length = int(len(data["treble_zone"]) * measure_playtime)
@@ -111,7 +111,7 @@ def process_zone(zone_index):
 
 # Use ThreadPoolExecutor to process zones in parallel
 with ThreadPoolExecutor() as executor:
-    results = list(executor.map(process_zone, range(0, 22)))
+    results = list(executor.map(process_zone, range(0, 2)))
 
 # Combine all processed zones into the final audio
 last_idx = 0
@@ -125,4 +125,4 @@ for mix_audio in results:
         
     last_idx += mix_audio["length"]
 
-final_audio.export(f"output/rewrite-the-stars/full_mp3.mp3", format="mp3", bitrate="192k")
+final_audio.export(f"output/your-lie-in-april/full_mp3.mp3", format="mp3", bitrate="192k")

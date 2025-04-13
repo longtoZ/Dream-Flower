@@ -36,7 +36,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # -------------------- Model Initialization --------------------
 
 # Load the pretrained YOLO model
-MODEL_PATH = r"C:\Users\VICTUS\Documents\OMR project\model_training\runs\detect\train5\weights\best.pt"
+MODEL_PATH = r"C:\Users\VICTUS\Documents\OMR project\model_training\runs\detect\train7\weights\best.pt"
 model = YOLO(MODEL_PATH)
 
 # Set device (GPU if available, otherwise CPU)

@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { v4 as uuidv4 } from 'uuid';
+import { useNavigate } from 'react-router-dom';
+import { ConvertToSheetProvider } from './context/ConvertToSheet';
+
 import ImageCard from './components/ImageCard';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
@@ -8,6 +10,10 @@ const ExtractLayout = () => {
 	const [loading, setLoading] = useState(false);
 	const [images, setImages] = useState([]);
 	const eventSource = useRef(null);
+
+	// ConvertToSheet context
+	const { setConvertToSheet } = ConvertToSheetProvider();
+	const Navigate = useNavigate();
 
 	useEffect(() => {
 		console.log(images);
@@ -108,6 +114,16 @@ const ExtractLayout = () => {
 
 	}
 
+	const handleConvert = () => {
+		// Get the boxes data from session storage
+		const storedImages = JSON.parse(localStorage.getItem("images"));
+
+		// Store the data in the ConvertToSheet context
+		setConvertToSheet(storedImages);
+
+		Navigate(`/convert-to-sheet/${filename}`, {state: {filename}});
+	}
+
 	return (
 		<div className="w-full px-[10%] py-10">
 			<div onDrop={handleDrop} onDragOver={handleDragOver} className="border mt-[100px] h-60 p-6 rounded-md flex items-center justify-center flex-col cursor-pointer bg-secondary border-dashed border-tertiary border-2">
@@ -129,6 +145,13 @@ const ExtractLayout = () => {
 					<ImageCard key={index} filename={imageData.filename} page={imageData.page} zone={imageData.zone} data={imageData.image} boxes={imageData.boxes}/>
 				))}
 			</div>
+			
+			<div className='mt-20 w-full flex justify-center items-center'>
+				<button onClick={handleConvert} className="float-button">
+					Convert to Sheet
+				</button>
+			</div>
+
 		</div>
   	)
 }

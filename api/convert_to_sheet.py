@@ -41,10 +41,12 @@ NOTES_ON_SCALE = {
     "7s": ["Cs", "Ds", "F", "Fs", "Gs", "As", "Bs"]
 }
 
+ALL_NOTES = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"]
+
 with open("json/data.json", "r") as f:
     full_data = json.load(f)
 
-data = full_data[0]
+data = full_data[1]
 
 # --------------------------------- Extracting Staff Lines ---------------------------------
 staff_lines = data["staff_lines"]
@@ -167,52 +169,61 @@ for note in bass_zones["note"]:
 
 print(len(treble_zones["note"]), len(treble_zones["flag"]), len(treble_zones["beam"]), len(treble_zones["rest"]), len(treble_zones["sharp"]), len(treble_zones["flat"]), len(treble_zones["natural"]), len(treble_zones["clef"]), len(treble_zones["barline"]))
 print(len(bass_zones["note"]), len(bass_zones["flag"]), len(bass_zones["beam"]), len(bass_zones["rest"]), len(bass_zones["sharp"]), len(bass_zones["flat"]), len(bass_zones["natural"]), len(bass_zones["clef"]), len(bass_zones["barline"]))
+
 # --------------------------------- Determine Scale ---------------------------------
 # Determine the scale
 scale = ""
 
-sharp_idx = 1
+INDEX_MAP = {
+    "sharp_index": 1,
+    "flat_index": 1,
+    "natural_index": 0,
+}
+
 
 if (len(treble_zones["sharp"]) > 0):
     # If there is a sharp symbol near the clef, determine the scale based on the sharp symbol
     if (treble_zones["sharp"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < 20):
         prev_x = treble_zones["sharp"][0]["box"][2]
 
-        while (sharp_idx < len(treble_zones["sharp"])):
-            curr_x = treble_zones["sharp"][sharp_idx]["box"][0]
+        while (INDEX_MAP["sharp_index"] < len(treble_zones["sharp"])):
+            curr_x = treble_zones["sharp"][INDEX_MAP["sharp_index"]]["box"][0]
 
             # Compare the starting x-coordinate of the current box with the ending x-coordinate of the previous box
             if (abs(curr_x - prev_x) < 10):
-                scale = f"{str(sharp_idx + 1)}s"
+                scale = f'{str(INDEX_MAP["sharp_index"] + 1)}s'
             else:
                 break
 
             # Update the previous x-coordinate by the current ending x-coordinate
-            prev_x = treble_zones["sharp"][sharp_idx]["box"][2]
-            sharp_idx += 1
-
-flat_idx = 1
+            prev_x = treble_zones["sharp"][INDEX_MAP["sharp_index"]]["box"][2]
+            INDEX_MAP["sharp_index"] += 1
 
 if (len(treble_zones["flat"]) > 0):
     # If there is a flat symbol near the clef, determine the scale based on the sharp symbol
     if (treble_zones["flat"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < 20):
         prev_x = treble_zones["flat"][0]["box"][2]
 
-        while (flat_idx < len(treble_zones["flat"])):
-            curr_x = treble_zones["flat"][flat_idx]["box"][0]
+        while (INDEX_MAP["flat_index"] < len(treble_zones["flat"])):
+            curr_x = treble_zones["flat"][INDEX_MAP["flat_index"]]["box"][0]
 
             # Compare the starting x-coordinate of the current box with the ending x-coordinate of the previous box
             if (abs(curr_x - prev_x) < 10):
-                scale = f"{str(flat_idx + 1)}b"
+                scale = f'{str(INDEX_MAP["flat_index"] + 1)}b'
             else:
                 break
             
             # Update the previous x-coordinate by the current ending x-coordinate
-            prev_x = treble_zones["flat"][flat_idx]["box"][2]
-            flat_idx += 1
+            prev_x = treble_zones["flat"][INDEX_MAP["flat_index"]]["box"][2]
+            INDEX_MAP["flat_index"] += 1
 
 # --------------------------------- Determine Note's Pitch ---------------------------------
-def shift_note(original_note, scale):
+def shift_note(original_note, shift):
+    shifted_note = ALL_NOTES[(ALL_NOTES.index(original_note[:-1]) + shift) % len(ALL_NOTES)]
+    shifted_octave = int(original_note[-1]) + (ALL_NOTES.index(original_note[:-1]) + shift) // len(ALL_NOTES)
+    return f"{shifted_note}{shifted_octave}"
+
+def shift_note_by_scale(original_note, scale):
     note_idx = 0
 
     # Find the index of the orignal note in C major scale
@@ -269,7 +280,7 @@ def generate_symbol_data(zone_name, zones, staff_lines_list, spare_staff_lines_l
                 switch_index += 1
 
             # Collect notes occurring in the same column. The second condition is used to handle
-            # the case where the note is in the same column but doesn't have enough space to stand. So, it must shift to the right 
+            # the case where the note is in the same column but doesn't have enough space to stand. So, it must shift to the right (or left)
             if (abs(curr_coord[0] - prev_coord[0]) <= line_space/2 or curr_coord[0] <= prev_coord[2]):
                 notes.append(zones["note"][note_idx])
             else:
@@ -313,9 +324,32 @@ def generate_symbol_data(zone_name, zones, staff_lines_list, spare_staff_lines_l
                                 # print("Note on staff line:", note_pitch)
                             
                             # print("y1:", y1, "y2:", y2, note_pitch, end="\n\n")
-                            note_pitch = shift_note(note_pitch, scale)
+                            note_pitch = shift_note_by_scale(note_pitch, scale)
                             break
                     
+                    # Shift pitch of the note if there is a sharp or flat symbol or natural symbol in front of the note
+                    curr_sharp = zones["sharp"][INDEX_MAP["sharp_index"]] if INDEX_MAP["sharp_index"] < len(zones["sharp"]) else None
+                    curr_flat = zones["flat"][INDEX_MAP["flat_index"]] if INDEX_MAP["flat_index"] < len(zones["flat"]) else None
+                    curr_natural = zones["natural"][INDEX_MAP["natural_index"]] if INDEX_MAP["natural_index"] < len(zones["natural"]) else None
+
+                    # Check if a sharp symbol is in front of the note
+                    if (curr_sharp is not None and abs(note["box"][0] - curr_sharp["box"][2]) <= line_space/2 
+                        and note["box"][1] - curr_sharp["box"][1] >= line_space/2 and curr_sharp["box"][3] - note["box"][3] >= line_space/2):
+                        note_pitch = shift_note(note_pitch, 1)
+                        INDEX_MAP["sharp_index"] += 1
+                    
+                    # Check if a flat symbol is in front of the note
+                    elif (curr_flat is not None and abs(note["box"][0] - curr_flat["box"][2]) <= line_space/2 
+                        and note["box"][1] - curr_flat["box"][1] >= line_space/2 and curr_flat["box"][3] - note["box"][3] >= line_space/2):
+                        note_pitch = shift_note(note_pitch, -1)
+                        INDEX_MAP["flat_index"] += 1
+                    
+                    # Check if a natural symbol is in front of the note
+                    elif (curr_natural is not None and abs(note["box"][0] - curr_natural["box"][2]) <= line_space/2 
+                        and note["box"][1] - curr_natural["box"][1] >= line_space/2 and curr_natural["box"][3] - note["box"][3] >= line_space/2):
+                        note_pitch = note_pitch.replace("#", "").replace("b", "")
+                        INDEX_MAP["natural_index"] += 1
+
                     notes_data["notes"].append(note_pitch)
                 
                 # Append the notes to the sheet
@@ -356,7 +390,7 @@ def generate_note_duration(zone_name, zone):
     last_valid_note_idx = 0
     note_idx = 0
     flag_idx = 0
-    max_space = line_space * (3/4)
+    max_space = line_space * (1/2)
 
     # Combine the flag and beam symbols into one list
     flag_beam_list = zone["flag"] + zone["beam"]
@@ -366,13 +400,10 @@ def generate_note_duration(zone_name, zone):
         while (flag_idx < len(flag_beam_list)):
             curr_flag = flag_beam_list[flag_idx]
 
-            if (curr_flag["symbol"].count("sixteenth") > 0):
-                print("Sixteenth beam:", curr_flag)
-
             # Iterate through the notes and find the note that is right in front of the flag
             while (note_idx < len(sheet[zone_name])):
                 curr_note = sheet[zone_name][note_idx]
-                print("Idx:", note_idx, flag_idx)
+                # print("Idx:", note_idx, flag_idx)
 
                 # Do not update if the flag type is already set
                 if (len(curr_note["flag_type"]) != 0):
@@ -385,7 +416,7 @@ def generate_note_duration(zone_name, zone):
                     # Check if the flag's box is in acceptable range of the note's x-coordinate
                     if (abs(curr_flag["box"][0] - curr_note["x1"]) <= max_space or abs(curr_flag["box"][0] - curr_note["x2"]) <= max_space):
                         # Only update the flag type if the note head type is a quarter note. Half note and whole note do not have flags
-                        if (curr_note["head_type"] == "quarter_note"):
+                        if (curr_note["head_type"].count("quarter_note") > 0):
                             curr_note["flag_type"] = curr_flag["symbol"].replace("_flag", "")
                             # print("Set flags for", curr_note["notes"])
                         break
@@ -428,8 +459,9 @@ def generate_note_duration(zone_name, zone):
 
                     # If there is a note presenting at the beginning of the beam
                     if (beam_start_box_start <= max_space or beam_start_box_end <= max_space):
-                        print("Beam start box start:", beam_start_box_start)
-                        print("Beam start box end:", beam_start_box_end)
+                        print("Line space: ", line_space, "Beam start box start:", beam_start_box_start, "Beam start box end:", beam_start_box_end)
+                        # print("Beam start box start:", beam_start_box_start)
+                        # print("Beam start box end:", beam_start_box_end)
                         if (curr_flag["start_available"] and curr_note["head_type"].count("quarter_note") > 0):
                             start_note_set = True
                             curr_flag["start_available"] = False
@@ -446,7 +478,7 @@ def generate_note_duration(zone_name, zone):
                                 curr_flag["turned_side"] = "left"
                                 print("Set start left side")
                     
-                    print("Current side:", curr_flag["turned_side"])
+                    # print("Current side:", curr_flag["turned_side"])
 
                     # Calculate the distance between the end of the beam and the note
                     beam_end_box_start = abs(curr_beam["box"][2] - curr_note["x1"])
@@ -456,8 +488,8 @@ def generate_note_duration(zone_name, zone):
                     # If there is no note at the beginning, the note at the end must be current note
                     if (not start_note_set):
                         if ((curr_flag["turned_side"] == "right" and beam_end_box_start <= max_space) or (curr_flag["turned_side"] == "left" and beam_end_box_end <= max_space)):
-                            print("Beam end box start:", beam_end_box_start)
-                            print("Beam end box end:", beam_end_box_end)
+                            # print("Beam end box start:", beam_end_box_start)
+                            # print("Beam end box end:", beam_end_box_end)
                             if (curr_flag["end_available"] and curr_note["head_type"].count("quarter_note") > 0):
                                 end_note_set = True
                                 curr_flag["end_available"] = False
@@ -472,15 +504,16 @@ def generate_note_duration(zone_name, zone):
                     # If there is a note presenting at the beginning of the beam, the note at the end must be the next note
                     if (start_note_set and not end_note_set and next_note is not None):
                         if ((curr_flag["turned_side"] == "right" and beam_end_box_start_next <= max_space) or (curr_flag["turned_side"] == "left" and beam_end_box_end_next <= max_space)):
-                            print("Beam end box start next:", beam_end_box_start_next)
-                            print("Beam end box end next:", beam_end_box_end_next)
+                            # print("Beam end box start next:", beam_end_box_start_next)
+                            # print("Beam end box end next:", beam_end_box_end_next)
                             if (curr_flag["end_available"] and curr_note["head_type"].count("quarter_note") > 0):
                                 end_note_set = True
                                 curr_flag["end_available"] = False
                                 next_beam = flag_beam_list[flag_idx + 1] if flag_idx < len(flag_beam_list) - 1 else None
 
-                                # If the next beam is diffrent type from the current beam, set the flag type to the next beam
+                                # If the next beam is diffrent type from the current beam, set the flag type of next_note to the next beam
                                 if (next_beam is not None and next_beam["symbol"].count("beam") > 0 and next_beam["box"][0] < curr_beam["box"][2]):
+                                    # curr_note["flag_type"] = next_beam["symbol"].replace("_beam", "")
                                     next_note["flag_type"] = next_beam["symbol"].replace("_beam", "")
                                 # Otherwise, use the current beam as the flag type
                                 else:
@@ -516,7 +549,6 @@ def generate_note_duration(zone_name, zone):
             
             flag_idx += 1
         
-
 generate_note_duration("treble_zone", treble_zones)
 print("---------------------------------")
 generate_note_duration("bass_zone", bass_zones)

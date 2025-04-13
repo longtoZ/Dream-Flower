@@ -19,7 +19,7 @@ const ImageCard = ({filename, page, zone, data, boxes}) => {
     }
 
     const handleNavigate = () => {
-        navigate(`/edit/${filename}-page${page}-zone${zone}`, {state: {page, zone}});
+        navigate(`/edit/${filename}-page${page}-zone${zone}`, {state: {filename, page, zone}});
     }
 
     return (

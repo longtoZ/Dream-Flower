@@ -8,14 +8,21 @@ import OpenWithIcon from '@mui/icons-material/OpenWith';
 import CropFreeIcon from '@mui/icons-material/CropFree';
 import SearchIcon from '@mui/icons-material/Search';
 import ContentCutIcon from '@mui/icons-material/ContentCut';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 const EditLayout = () => {
 	const navigate = useNavigate();
 
     const canvasRef = useRef(null);
 	const location = useLocation();
+	const filename = location.state?.filename;
 	const page = location.state?.page;
 	const zone = location.state?.zone;
+
+	// Page number operations
+	const [prevPage, setPrevPage] = useState(null);
+	const [nextPage, setNextPage] = useState(null);
 
 	// Canvas operations
 	const [image, setImage] = useState(new Image());
@@ -89,7 +96,18 @@ const EditLayout = () => {
 	// Retrieve data from session storage
     useEffect(() => {
 		const retrievedData = JSON.parse(localStorage.getItem('images'));
-		const canvasData = retrievedData.find((image) => image.page === page && image.zone === zone);
+		const canvasDataIndex = retrievedData.findIndex((image) => image.page === page && image.zone === zone);
+		const canvasData = retrievedData[canvasDataIndex];
+		const prevCanvasData = canvasDataIndex > 0 ? retrievedData[canvasDataIndex - 1] : null;
+		const nextCanvasData = canvasDataIndex < retrievedData.length - 1 ? retrievedData[canvasDataIndex + 1] : null;
+
+		// Set the page number and total pages
+		if (prevCanvasData) {
+			setPrevPage({page: prevCanvasData.page, zone: prevCanvasData.zone});
+		}
+		if (nextCanvasData) {
+			setNextPage({page: nextCanvasData.page, zone: nextCanvasData.zone});
+		}
 
 		const canvas = canvasRef.current;
 		const parent = canvas.parentElement;
@@ -788,6 +806,22 @@ const EditLayout = () => {
 		setDialogOpen(false);
 	}
 
+	const handlePreviousPage = () => {
+		if (prevPage) {
+			navigate(`/edit/${filename}-page${prevPage.page}-zone${prevPage.zone}`, {state: {filename, page: prevPage.page, zone: prevPage.zone}});
+			// Force a page reload to ensure all data is refreshed
+			window.location.reload();
+		}
+	};
+	
+	const handleNextPage = () => {
+		if (nextPage) {
+			navigate(`/edit/${filename}-page${nextPage.page}-zone${nextPage.zone}`, {state: {filename, page: nextPage.page, zone: nextPage.zone}});
+			// Force a page reload to ensure all data is refreshed
+			window.location.reload();
+		}
+	};
+
 	return (
   		<div className='flex h-[100vh] overflow-hidden bg-primary'>
 			<div className='relative w-[16%] bg-secondary border-r-2 border-zinc-600 border-solid'>
@@ -822,9 +856,14 @@ const EditLayout = () => {
 					))}
 				</div>
 			</div>
+
+			{/* Canvas operation (top bar) */}
 			<div className='relative w-[84%]'>
-				<div className='aboslute top-0 left-0 w-full h-14 bg-secondary flex items-center justify-between px-4'>
-					<div className='flex items-center'>
+				<div className='aboslute top-0 left-0 w-full h-16 bg-secondary flex items-center justify-between px-4'>
+					<div className='flex flex-col justify-center'>
+						<h1 className='text-white opacity-50 text-sm hover:underline hover:cursor-pointer' onClick={() => navigate('/extract')}>
+							Home
+						</h1>
 						<h1 className='text-white text-lg'>{image.alt}</h1>
 					</div>
 					<div className='flex items-center'>
@@ -841,6 +880,8 @@ const EditLayout = () => {
 				</div>
 				<canvas ref={canvasRef} className='w-full h-full' onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
 				</canvas>
+
+				{/* Box for switching between drag and edit modes */}
 				<div className='absolute bottom-3 left-[50%] -translate-x-[50%] h-10 bg-secondary mx-auto mt-4 rounded-lg grid grid-cols-3'>
 					<div className='w-10 flex items-center justify-center bg-zinc-300 rounded-md m-1 cursor-pointer transition-all duration-300 ease' ref={dragModeRef} onClick={handleModeSwitch}>
 						<h1 className='text-sm text-black font-semibold pointer-events-none transition-all duration-300 ease'>
@@ -858,6 +899,20 @@ const EditLayout = () => {
 						</h1>
 					</div>
 				</div>
+
+				{/* Box for navigating between pages */}
+				<div className='absolute top-[50%] -translate-y-[50%] right-3 h-20 bg-secondary mx-auto mt-4 rounded-lg grid grid-rows-2'>
+					<div className='w-10 flex items-center justify-center rounded-md m-1 cursor-pointer transition-all duration-300 ease' onClick={handlePreviousPage}>
+						<h1 className='text-sm font-semibold pointer-events-none transition-all duration-300 ease'>
+							<ArrowUpwardIcon />
+						</h1>
+					</div>
+					<div className='w-10 flex items-center justify-center rounded-md m-1 cursor-pointer transition-all duration-300 ease' onClick={handleNextPage}>
+						<h1 className='text-sm font-semibold pointer-events-none transition-all duration-300 ease'>
+							<ArrowDownwardIcon />
+						</h1>
+					</div>
+				</div>				
 
 				<ConfirmDialog message={
 					<>
