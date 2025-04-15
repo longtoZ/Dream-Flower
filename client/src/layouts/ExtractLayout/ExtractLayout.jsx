@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useContext } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { ConvertToSheetProvider } from './context/ConvertToSheet';
+import { ConvertToSheetContext } from '../../context/ConvertToSheet';
 
 import ImageCard from './components/ImageCard';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -12,7 +12,7 @@ const ExtractLayout = () => {
 	const eventSource = useRef(null);
 
 	// ConvertToSheet context
-	const { setConvertToSheet } = ConvertToSheetProvider();
+	const { setConvertToSheet } = useContext(ConvertToSheetContext);
 	const Navigate = useNavigate();
 
 	useEffect(() => {
@@ -116,11 +116,15 @@ const ExtractLayout = () => {
 
 	const handleConvert = () => {
 		// Get the boxes data from session storage
-		const storedImages = JSON.parse(localStorage.getItem("images"));
+		const storedImages = localStorage.getItem("images");
 
 		// Store the data in the ConvertToSheet context
 		setConvertToSheet(storedImages);
 
+		// Get the filename from the file object
+		const filename = images[0].filename;
+
+		// Navigate to the ConvertToSheet page with the filename as a parameter
 		Navigate(`/convert-to-sheet/${filename}`, {state: {filename}});
 	}
 

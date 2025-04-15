@@ -22,7 +22,7 @@ note_playtime = {
 TARGET_TREBLE_DBFS = -20
 TARGET_BASS_DBFS = -20
 
-def generate_audio(zone, zone_name):
+def generate_audio(zone):
     final_audio = AudioSegment.silent(duration=int(len(zone) * measure_playtime + measure_playtime * 0.25))
     measure_idx = 0
 
