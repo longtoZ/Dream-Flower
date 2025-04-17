@@ -1,35 +1,28 @@
 from pydub import AudioSegment
 from concurrent.futures import ThreadPoolExecutor
-import json
+from uuid import uuid4
 
 AudioSegment.converter = "ffmpeg-build/bin/ffmpeg.exe"
 AudioSegment.ffmpeg = "ffmpeg-build/bin/ffmpeg.exe"
 AudioSegment.ffprobe = "ffmpeg-build/bin/ffprobe.exe"
 
-measure_playtime = 3000
-note_playtime = {
-    "whole": 1 * measure_playtime,
-    "half": 0.5 * measure_playtime,
-    "quarter": 0.25 * measure_playtime,
-    "eight": 0.125 * measure_playtime,
-    "sixteenth": 0.0625 * measure_playtime,
-    "thirty_second": 0.03125 * measure_playtime,
-}
-
-# zone_index = 6
-
 TARGET_TREBLE_DBFS = -20
 TARGET_BASS_DBFS = -20
 
-def generate_audio(zone):
-    final_audio = AudioSegment.silent(duration=int(len(zone) * measure_playtime + measure_playtime * 0.25))
-    measure_idx = 0
+def generate_audio(zone, measure_playtime, note_playtime):
+    # Calculate the total length of the zone's audio since the measure playtime is not constant (changing in time_signature)
+    original_length = sum([measure_playtime * measure["measure_duration"] for measure in zone])
+
+    final_audio = AudioSegment.silent(duration=int(original_length * 1.25))
+    next_position = 0
 
     for measure in zone:
-        measure_audio = AudioSegment.silent(duration=int(measure_playtime*1.25))
+        # Calculate the actual measure playtime based on the measure duration (reltaed to time coefficient of each measure)
+        actual_measure_playtime = measure_playtime * measure["measure_duration"]
+        measure_audio = AudioSegment.silent(duration=int(actual_measure_playtime * 1.25))
         symbol_idx = 0
 
-        for symbol in measure:
+        for symbol in measure["symbols"]:
             if (symbol.get("notes")):
                 # Adjust the volume of the notes before overlaying them
                 num_notes = len(symbol["notes"])
@@ -71,27 +64,21 @@ def generate_audio(zone):
                 symbol_idx += int(note_playtime[symbol["rest"]])
         
         # If the measure audio is longer than the measure playtime, trim it
-        if (len(measure_audio) > int(measure_playtime*1.25)):
-            measure_audio = measure_audio[:int(measure_playtime*1.25)]
+        if (len(measure_audio) > int(actual_measure_playtime*1.25)):
+            measure_audio = measure_audio[:int(actual_measure_playtime*1.25)]
         
         # Add fade out to the measure audio so that it doesn't cut off abruptly and cause a pop sound
-        measure_audio = measure_audio.fade_in(10).fade_out(int(measure_playtime * 0.25))
+        measure_audio = measure_audio.fade_in(10).fade_out(int(actual_measure_playtime * 0.25))
 
         # Add the measure audio to the final audio
-        final_audio = final_audio.overlay(measure_audio, position=measure_idx * measure_playtime)
-        measure_idx += 1
+        final_audio = final_audio.overlay(measure_audio, position=next_position)
+        next_position += actual_measure_playtime
 
-    return final_audio
+    return final_audio, original_length
 
-final_audio = AudioSegment.silent(duration=0)
-
-def process_zone(zone_index):
-    with open(f"json/your-lie-in-april/z{zone_index}.json") as f:
-        data = json.load(f)
-
-    original_length = int(len(data["treble_zone"]) * measure_playtime)
-    treble_audio = generate_audio(data["treble_zone"], "treble")
-    bass_audio = generate_audio(data["bass_zone"], "bass")
+def process_zone(data, measure_playtime, note_playtime):
+    treble_audio, original_length = generate_audio(data["treble_zone"], measure_playtime, note_playtime)
+    bass_audio, original_length = generate_audio(data["bass_zone"], measure_playtime, note_playtime)
 
     # Adjust the volume of the treble and bass audio
     treble_audio = treble_audio.apply_gain(TARGET_TREBLE_DBFS - treble_audio.dBFS)
@@ -102,26 +89,42 @@ def process_zone(zone_index):
     if (mix_audio.dBFS > 0):
         mix_audio = mix_audio.apply_gain(-mix_audio.dBFS - 0.1)
 
-    print(f"Zone {zone_index} done")
+    print(f"Page: {data['page']} - Zone {data['zone']} done")
     return {
         "audio": mix_audio,
         "length": original_length,
     }
 
-# Use ThreadPoolExecutor to process zones in parallel
-with ThreadPoolExecutor() as executor:
-    results = list(executor.map(process_zone, range(0, 2)))
+def combine_audio(music_sheet, measure_playtime):
+    note_playtime = {
+        "whole": 1 * measure_playtime,
+        "half": 0.5 * measure_playtime,
+        "quarter": 0.25 * measure_playtime,
+        "eight": 0.125 * measure_playtime,
+        "sixteenth": 0.0625 * measure_playtime,
+        "thirty_second": 0.03125 * measure_playtime,
+    }
 
-# Combine all processed zones into the final audio
-last_idx = 0
+    final_audio = AudioSegment.silent(duration=0)
 
-for mix_audio in results:
-    final_audio += AudioSegment.silent(duration=len(mix_audio["audio"]))
-    final_audio = final_audio.overlay(mix_audio["audio"], position=last_idx)
+    # Use ThreadPoolExecutor to process zones in parallel
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(process_zone, music_sheet, [measure_playtime] * len(music_sheet), [note_playtime] * len(music_sheet)))
 
-    if (final_audio.dBFS > 0):
-        final_audio = final_audio.apply_gain(-final_audio.dBFS - 0.1)
-        
-    last_idx += mix_audio["length"]
+    # Combine all processed zones into the final audio
+    last_idx = 0
 
-final_audio.export(f"output/your-lie-in-april/full_mp3.mp3", format="mp3", bitrate="192k")
+    for mix_audio in results:
+        final_audio += AudioSegment.silent(duration=len(mix_audio["audio"]))
+        final_audio = final_audio.overlay(mix_audio["audio"], position=last_idx)
+
+        if (final_audio.dBFS > 0):
+            final_audio = final_audio.apply_gain(-final_audio.dBFS - 0.1)
+            
+        last_idx += mix_audio["length"]
+
+    filename = str(uuid4())
+    final_audio.export(f"output/{filename}.mp3", format="mp3", bitrate="192k")
+
+    # Return the path to the exported file
+    return f"output/{filename}.mp3"

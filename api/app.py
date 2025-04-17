@@ -7,7 +7,7 @@ import logging
 
 # Import configuration and resources
 from config import UPLOAD_FOLDER
-from resources import UploadPdf, StreamImageResults, ConvertToSheetResource
+from resources import UploadPdf, StreamImageResults, ConvertToSheetResource, GenerateAudioResource
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
@@ -42,6 +42,7 @@ except OSError as e:
 # POST endpoint to upload PDF, returns a session ID
 api.add_resource(UploadPdf, "/api/upload") 
 api.add_resource(ConvertToSheetResource, "/api/convert-to-sheet")
+api.add_resource(GenerateAudioResource, "/api/generate-audio")
 
 # GET endpoint to stream results, takes session ID in the URL path
 api.add_resource(StreamImageResults, "/api/stream/<string:session_id>")

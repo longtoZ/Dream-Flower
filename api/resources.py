@@ -6,7 +6,7 @@ import base64
 import json
 import time # For waiting
 
-from flask import request, Response, jsonify, current_app
+from flask import request, Response, jsonify, current_app, send_file
 from flask_restful import Resource
 from pdf2image import convert_from_path, pdfinfo_from_path
 from PIL import Image
@@ -18,6 +18,7 @@ from config import UPLOAD_FOLDER, POPPLER_PATH
 from image_utils import separate_staff_zones, remove_staff_lines, extract_staff_lines
 from model_utils import extract_boxes # Use the function from model_utils
 from sheet_converter import convert_to_sheet
+from audio_generator import combine_audio
 
 # --- API Resources ---
 
@@ -196,10 +197,12 @@ class ConvertToSheetResource(Resource):
             return {"error": "Request body must be a JSON list"}, 400
 
         results_list = []
+        TIME_COEFF = [1]
+
         for index, item in enumerate(input_data_list):
             try:
                 # Call the conversion function for each item in the list
-                music_sheet_result = convert_to_sheet(item)
+                music_sheet_result = convert_to_sheet(item, TIME_COEFF)
                 if music_sheet_result: # Append only if conversion was successful
                    results_list.append(music_sheet_result)
                 else:
@@ -211,3 +214,26 @@ class ConvertToSheetResource(Resource):
 
         # Return the list of generated music_sheet dictionaries
         return jsonify(results_list) 
+
+class GenerateAudioResource(Resource):
+    def post(self):
+        """
+        Receives a list of music sheet data via POST, generates audio for each item,
+        and returns a list of audio results.
+        """
+        # Parse the JSON input data from the request body
+        input_data = request.get_json()
+        music_sheet = input_data.get("music_sheet")
+        measure_playtime = input_data.get("measure_playtime")
+
+        if not isinstance(music_sheet, list):
+            return {"error": "Request body must be a JSON list"}, 400
+
+        filename = combine_audio(music_sheet, measure_playtime)
+
+        return send_file(
+            filename,
+            mimetype="audio/mpeg",
+            as_attachment=True,
+            download_name=os.path.basename(filename),
+        )

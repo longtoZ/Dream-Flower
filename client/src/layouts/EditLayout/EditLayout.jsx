@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CLASS_NAMES, CLASS_COLORS, CANVAS_MODE, BOX_ZONE } from '../../config/constants';
+import { TIME_CLASS_NAMES, CLASS_NAMES, CLASS_COLORS, CANVAS_MODE, BOX_ZONE } from '../../config/constants';
 
 import ConfirmDialog from './components/ConfirmDialog';
 
@@ -122,6 +122,9 @@ const EditLayout = () => {
 			x: canvas.width / 2 - image.width * scale/2,
 			y: canvas.height / 2 - image.height * scale/2,
 		}));
+
+		// Add boxes for TIME_CLASS_NAMES
+		TIME_CLASS_NAMES.forEach(() => canvasData.boxes.push([]));
 
 		setBoxes(() => canvasData.boxes);
 		setStaffLines(() => canvasData.staff_lines);
@@ -640,6 +643,12 @@ const EditLayout = () => {
 			draggingRef.current = false;
 		} else if (workingMode === CANVAS_MODE.EDIT) {
 			resizingRef.current = false;
+
+			// Focus on search box and select all text
+			if (focusBoxIndex.symbolIndex !== -1 && focusBoxIndex.boxIndex !== -1) {
+				searchBoxRef.current.focus();
+				searchBoxRef.current.select();
+			}
 			
 			// If the box was not created, reset the focus box index
 			if (prevFocusBoxIndex.boxIndex === boxes[prevFocusBoxIndex.symbolIndex].length) {

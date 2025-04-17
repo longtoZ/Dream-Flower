@@ -36,9 +36,9 @@ const ConvertToSheetLayout = () => {
     }, [rawData]);
 
     return (
-        <div className="p-4 bg-gray-100 h-screen overflow-auto">
+        <div className="p-4 h-screen overflow-auto">
             <div className="grid grid-cols-1 gap-4 mb-4">
-                <SheetNavigator musicSheetData={musicSheetData} />
+                <SheetNavigator receivedData={musicSheetData} />
             </div>
         </div>
     )

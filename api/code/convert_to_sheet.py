@@ -1,9 +1,13 @@
 import json
 
-CLASS_NAMES = ['barline', 'bass_clef', 'decrescendo', 'dotted_half_note', 'dotted_quarter_note', 
-               'eight_beam', 'eight_flag', 'eight_rest', 'flat', 'half_note', 'natural', 'quarter_note', 
-               'quarter_rest', 'sharp', 'sixteenth_beam', 'sixteenth_flag', 'sixteenth_rest', 'thirty_second_beam', 
-               'treble_clef', 'whole_half_rest', 'whole_note']
+# CLASS_NAMES = ['barline', 'bass_clef', 'decrescendo', 'dotted_half_note', 'dotted_quarter_note', 'eight_beam', 
+#                'eight_flag', 'eight_rest', 'five_four', 'flat', 'four_four', 'half_note', 'natural', 'quarter_note', 
+#                'quarter_rest', 'sharp', 'six_eight', 'sixteenth_beam', 'sixteenth_flag', 'sixteenth_rest', 
+#                'thirty_second_beam', 'three_four', 'treble_clef', 'two_four', 'whole_half_rest', 'whole_note']
+
+SYMBOL_CLASS_NAMES = ['barline', 'bass_clef', 'decrescendo', 'dotted_half_note', 'dotted_quarter_note', 'eight_beam', 'eight_flag', 'eight_rest', 'flat', 'half_note', 'natural', 'quarter_note', 'quarter_rest', 'sharp', 'sixteenth_beam', 'sixteenth_flag', 'sixteenth_rest', 'thirty_second_beam', 'treble_clef', 'whole_half_rest', 'whole_note'];
+TIME_CLASS_NAMES = ['two_four_sign', 'three_four_sign', 'four_four_sign', 'five_four_sign', 'six_eight_sign']
+CLASS_NAMES = SYMBOL_CLASS_NAMES + TIME_CLASS_NAMES
 
 SCALE = {
     "0": "C major",
@@ -43,10 +47,10 @@ NOTES_ON_SCALE = {
 
 ALL_NOTES = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"]
 
-with open("json/data.json", "r") as f:
+with open("../json/data.json", "r") as f:
     full_data = json.load(f)
 
-data = full_data[1]
+data = full_data[14]
 
 # --------------------------------- Extracting Staff Lines ---------------------------------
 staff_lines = data["staff_lines"]
@@ -105,6 +109,7 @@ treble_zones = {
     "natural": [],
     "clef": [],
     "barline": [],
+    "sign": [],
 }
 bass_zones = {
     "note": [],
@@ -116,6 +121,7 @@ bass_zones = {
     "natural": [],
     "clef": [],
     "barline": [],
+    "sign": [],
 }
 space_max_diff = line_space
 
@@ -132,7 +138,6 @@ for symbol_index in range(len(boxes)):
             continue
         
         # Check if the coordinates are within treble zone
-        # if box[3] >= treble_staff_lines["C6"] and box[1] <= treble_staff_lines["A3"]:
         if (box[3] - treble_staff_lines["E6"] >= treble_staff_lines["E6"] - box[1]) and (treble_staff_lines["F3"] - box[1] >= box[3] - treble_staff_lines["F3"]):
             for key in treble_zones:
                 if (symbol.count(key) > 0):
@@ -140,7 +145,6 @@ for symbol_index in range(len(boxes)):
                     break
                     
         # Check if the coordinates are within bass zone
-        # if box[3] >= bass_staff_lines["E4"] and box[1] <= bass_staff_lines["C2"]:
         elif (box[3] - bass_staff_lines["G4"] >= bass_staff_lines["G4"] - box[1]) and (bass_staff_lines["A1"] - box[1] >= box[3] - bass_staff_lines["A1"]):
             for key in bass_zones:
                 if (symbol.count(key) > 0):
@@ -183,7 +187,7 @@ INDEX_MAP = {
 
 if (len(treble_zones["sharp"]) > 0):
     # If there is a sharp symbol near the clef, determine the scale based on the sharp symbol
-    if (treble_zones["sharp"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < 20):
+    if (treble_zones["sharp"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < line_space/2):
         prev_x = treble_zones["sharp"][0]["box"][2]
 
         while (INDEX_MAP["sharp_index"] < len(treble_zones["sharp"])):
@@ -201,7 +205,7 @@ if (len(treble_zones["sharp"]) > 0):
 
 if (len(treble_zones["flat"]) > 0):
     # If there is a flat symbol near the clef, determine the scale based on the sharp symbol
-    if (treble_zones["flat"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < 20):
+    if (treble_zones["flat"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < line_space/2):
         prev_x = treble_zones["flat"][0]["box"][2]
 
         while (INDEX_MAP["flat_index"] < len(treble_zones["flat"])):
@@ -385,6 +389,15 @@ else:
     generate_symbol_data("bass_zone", bass_zones, bass_staff_lines_list, bass_staff_lines_list_modified, bass_cleves_coords)
 
 # --------------------------------- Determine Note's Duration ---------------------------------
+FLAG_WEIGHT = {
+    "eight": 1/8,
+    "sixteenth": 1/16,
+    "thirty_second": 1/32,
+}
+
+def compare_flag_weight(flag1, flag2):
+    return FLAG_WEIGHT[flag1] < FLAG_WEIGHT[flag2]
+
 # Determine note's duration by checking the flag symbol
 def generate_note_duration(zone_name, zone):
     last_valid_note_idx = 0
@@ -430,11 +443,6 @@ def generate_note_duration(zone_name, zone):
                     # Variable to check the turned side of the notes
                     # All notes in the beam are turned to one side only. Therefore, the next note must be turned to the same side
                     curr_flag["turned_side"] = ""
-
-                    curr_beam = curr_flag
-                    next_note = sheet[zone_name][note_idx + 1] if note_idx < len(sheet[zone_name]) - 1 else None
-                    start_note_set = False
-                    end_note_set = False
                 
                     if (flag_idx - 1 >= 0):
                         prev_flag = flag_beam_list[flag_idx - 1]
@@ -495,6 +503,19 @@ def generate_note_duration(zone_name, zone):
                                 curr_flag["end_available"] = False
 
                                 curr_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
+
+                                if (not curr_flag["start_available"]):
+                                    next_beam = flag_beam_list[flag_idx + 1] if flag_idx < len(flag_beam_list) - 1 else None
+
+                                    # The note's duration is determined by the piority of the next beam. 
+                                    # If the next beam has less weight than the current beam, set the flag type of the current note to the next beam.
+                                    # Otherwise, use the current beam as the flag type
+                                    if (next_beam is not None and next_beam["symbol"].count("beam") > 0 and next_beam["box"][0] < curr_beam["box"][2]):
+                                        is_next_beam_greater = compare_flag_weight(curr_beam["symbol"].replace("_beam", ""), next_beam["symbol"].replace("_beam", ""))
+                                        
+                                        if (not is_next_beam_greater):
+                                            curr_note["flag_type"] = next_beam["symbol"].replace("_beam", "")
+
                                 # print("Current note at the end")
                                 # print("Set beam for", curr_note)
 
@@ -510,14 +531,18 @@ def generate_note_duration(zone_name, zone):
                                 end_note_set = True
                                 curr_flag["end_available"] = False
                                 next_beam = flag_beam_list[flag_idx + 1] if flag_idx < len(flag_beam_list) - 1 else None
+                                next_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
 
                                 # If the next beam is diffrent type from the current beam, set the flag type of next_note to the next beam
+
                                 if (next_beam is not None and next_beam["symbol"].count("beam") > 0 and next_beam["box"][0] < curr_beam["box"][2]):
-                                    # curr_note["flag_type"] = next_beam["symbol"].replace("_beam", "")
-                                    next_note["flag_type"] = next_beam["symbol"].replace("_beam", "")
+                                    is_next_beam_greater = compare_flag_weight(curr_beam["symbol"].replace("_beam", ""), next_beam["symbol"].replace("_beam", ""))
+
+                                    # Check the priority of the next beam as above
+                                    if (not is_next_beam_greater):
+                                        next_note["flag_type"] = next_beam["symbol"].replace("_beam", "")
+
                                 # Otherwise, use the current beam as the flag type
-                                else:
-                                    next_note["flag_type"] = curr_beam["symbol"].replace("_beam", "")
 
                                 print("next note:", next_note)
                     #             print("Next note at the end")
@@ -625,6 +650,18 @@ generate_barline_position("bass_zone", bass_zones)
 # ---------------------------- Verify the duration of each measure ---------------------------------
 
 # Assume the time signature is 4/4 and time for each measure is 2 second
+TIME_SIGNATURE_WEIGHT = {
+    "two_four": 2/4,
+    "three_four": 3/4,
+    "four_four": 4/4,
+    "five_four": 5/4,
+    "six_eight": 6/8,
+}
+
+time_signature_coords_treble = treble_zones["sign"]
+time_signature_coords_bass = bass_zones["sign"]
+
+time_coeff = 0.5
 measure_playtime = 1
 note_playtime = {
     "whole": 1 * measure_playtime,
@@ -640,7 +677,9 @@ music_sheet = {
     "bass_zone": [],
 }
 
-def verify_measure_duration(zone_name, zone):
+
+def verify_measure_duration(zone_name, zone, time_coeff, time_signature_coords = None):
+    time_signature_idx = 0
     measure_duration = 0
     measure_idx = 0
     first_barline = True
@@ -655,6 +694,12 @@ def verify_measure_duration(zone_name, zone):
         should_append = False
 
         if (symbol.get("notes")):
+            # Update the time signature if it is found
+            if (time_signature_coords):
+                if (time_signature_idx < len(time_signature_coords) and symbol["x1"] > time_signature_coords[time_signature_idx]["box"][0]):
+                    time_coeff = TIME_SIGNATURE_WEIGHT[time_signature_coords[time_signature_idx]["symbol"].replace("_sign", "")]
+                    time_signature_idx += 1
+            
             # If the note doesn't have a flag, the duration is the same as the head type
             if (len(symbol["flag_type"]) == 0):
                 measure_duration += note_playtime[symbol["head_type"].replace("dotted_", "").replace("_note", "")]
@@ -698,11 +743,11 @@ def verify_measure_duration(zone_name, zone):
                 # Update the measure duration
                 measure_duration = segment_before + whole_half_rest_duration
 
-            if (measure_duration != measure_playtime):
-                print("Measure", measure_idx + 1, "duration is not correct")
-                print("Expected:", measure_playtime, "Actual:", measure_duration)
+            if (measure_duration != measure_playtime * time_coeff):
+                print("Measure", measure_idx, "duration is not correct")
+                print("Expected:", measure_playtime * time_coeff, "Actual:", measure_duration)
             else:
-                print("Measure", measure_idx + 1, "duration is correct")
+                print("Measure", measure_idx, "duration is correct")
 
 
             should_append = True
@@ -715,14 +760,18 @@ def verify_measure_duration(zone_name, zone):
             music_sheet[zone_name].append({
                 "measure": measure_idx,
                 "symbols": current_measure,
-                "duration": measure_duration,
+                "measure_duration": measure_duration,
+                "measure_playtime": measure_playtime * time_coeff,
             })
 
             current_measure = []
             measure_duration = 0
             measure_idx += 1
 
-verify_measure_duration("treble_zone", sheet["treble_zone"])
-verify_measure_duration("bass_zone", sheet["bass_zone"])
+# verify_measure_duration("treble_zone", sheet["treble_zone"], time_signature_coords_treble)
+# verify_measure_duration("bass_zone", sheet["bass_zone"], time_signature_coords_bass)
+
+verify_measure_duration("treble_zone", sheet["treble_zone"], time_coeff)
+verify_measure_duration("bass_zone", sheet["bass_zone"], time_coeff)
 
 print(json.dumps(music_sheet, indent=4))
