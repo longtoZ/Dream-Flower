@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useRef, useContext } from 'react'
-import { useNavigate } from 'react-router-dom';
 import { ConvertToSheetContext } from '../../context/ConvertToSheet';
+import { AudioContext } from '../../context/Audio';
 
 import SheetNavigator from './components/SheetNavigator';
+import AudioPlayer from './components/AudioPlayer';
 
 const ConvertToSheetLayout = () => {
     const rawData = useContext(ConvertToSheetContext).convertToSheet;
+    const audioUrl = useContext(AudioContext).audioUrl;
+    const jsonData = useContext(AudioContext).jsonData;
 
     const [musicSheetData, setMusicSheetData] = useState([]);
 
@@ -35,10 +38,15 @@ const ConvertToSheetLayout = () => {
 
     }, [rawData]);
 
+    useEffect(() => {
+        console.log("JSON Data:", jsonData);
+    }, [jsonData]);
+
     return (
         <div className="p-4 h-screen overflow-auto">
             <div className="grid grid-cols-1 gap-4 mb-4">
                 <SheetNavigator receivedData={musicSheetData} />
+                {audioUrl && <AudioPlayer audioUrl={audioUrl} jsonData={jsonData} />}
             </div>
         </div>
     )

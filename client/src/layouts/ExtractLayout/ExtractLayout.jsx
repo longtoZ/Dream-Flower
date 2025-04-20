@@ -16,7 +16,7 @@ const ExtractLayout = () => {
 	const Navigate = useNavigate();
 
 	useEffect(() => {
-		console.log(images);
+		console.log("Images: ", images);
 	}, [images]);
 
 	// Load stored images from session storage on component mount
@@ -70,7 +70,7 @@ const ExtractLayout = () => {
 
 		try {
 			// Upload PDF file to server
-			const response = await fetch("http://127.0.0.1:5000/extract", {
+			const response = await fetch("http://127.0.0.1:5000/api/upload", {
 				method: "POST",
 				body: formData,
 				headers: {
@@ -80,8 +80,11 @@ const ExtractLayout = () => {
 
 			if (!response.ok) throw new Error("Failed to upload file");
 
+			const data = await response.json();
+			const sessionId = data["session_id"];
+
 			// Start listening for server-sent events
-			eventSource.current = new EventSource("http://127.0.0.1:5000/stream");
+			eventSource.current = new EventSource(`http://127.0.0.1:5000/api/stream/${sessionId}`);
 
 			eventSource.current.onmessage = (e) => {
 
@@ -130,6 +133,9 @@ const ExtractLayout = () => {
 
 	return (
 		<div className="w-full px-[10%] py-10">
+			<h1 className='text-4xl font-bold text-white'>
+				Flower Dance
+			</h1>
 			<div onDrop={handleDrop} onDragOver={handleDragOver} className="border mt-[100px] h-60 p-6 rounded-md flex items-center justify-center flex-col cursor-pointer bg-secondary border-dashed border-tertiary border-2">
 				<h3 className="opacity-30">
 					Drag and drop your file here to upload

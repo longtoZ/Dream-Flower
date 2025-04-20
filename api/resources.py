@@ -74,112 +74,61 @@ class StreamImageResults(Resource):
         original_filename = file_info["filename"] # Keep original for reference if needed
 
         if not os.path.exists(uploaded_filepath):
-             # Maybe wait a fraction of a second in case of race condition
-             time.sleep(0.5) 
-             if not os.path.exists(uploaded_filepath):
-                return Response(f"data: {json.dumps({'error': 'Uploaded file not found on server'})}\n\n", mimetype="text/event-stream")
+            return Response(f"data: {json.dumps({'error': 'Uploaded file not found on server'})}\n\n", mimetype="text/event-stream")
 
         def generate():
-            try:
-                # Check PDF validity before conversion
-                try:
-                   pdfinfo_from_path(uploaded_filepath, poppler_path=POPPLER_PATH)
-                except Exception as pdf_err:
-                    yield f"data: {json.dumps({'error': f'Invalid PDF file: {pdf_err}'})}\n\n"
-                    return
+            # Convert PDF to images
+            images = convert_from_path(uploaded_filepath, dpi=300, poppler_path="./poppler-24.08.0/Library/bin")
 
-                # Convert PDF to images
-                print(f"Converting PDF: {original_filename} using poppler: {POPPLER_PATH}")
-                images = convert_from_path(uploaded_filepath, dpi=300, poppler_path=POPPLER_PATH)
-                print(f"PDF conversion complete. Found {len(images)} pages.")
+            # Stream each image as a response
+            for i, img in enumerate(images):
+                img_io = io.BytesIO()
+                img.save(img_io, "PNG")
 
-                total_zones_processed = 0
-                # Process each page
-                for i, pil_img in enumerate(images):
-                    # Convert PIL Image to BytesIO for processing functions
-                    img_io = io.BytesIO()
-                    pil_img.save(img_io, "PNG")
-                    img_io.seek(0) # Reset stream position
+                # Separate staff zones and detect symbols
+                staff_zones = separate_staff_zones(img_io)
 
-                    # Separate staff zones
-                    staff_zones = separate_staff_zones(img_io)
-                    print(f"Page {i+1}: Found {len(staff_zones)} potential staff zones.")
+                for j, zone in enumerate(staff_zones):
+                    # Remove staff lines from the zone
+                    zone_no_lines = remove_staff_lines(zone)
 
-                    if not staff_zones:
-                         yield f"data: {json.dumps({'page': i+1, 'status': 'No zones found'})}\n\n"
-                         continue
+                    # Extract staff lines from the zone
+                    staff_lines = extract_staff_lines(zone)
 
-                    # Process each zone
-                    for j, zone_bgr in enumerate(staff_zones):
-                        if zone_bgr is None or zone_bgr.size == 0:
-                            print(f"Skipping invalid zone {j+1} on page {i+1}")
-                            continue
-                        
-                        # 1. Original Zone Image (for display)
-                        original_zone_pil = Image.fromarray(cv2.cvtColor(zone_bgr, cv2.COLOR_BGR2RGB))
-                        original_zone_io = io.BytesIO()
-                        original_zone_pil.save(original_zone_io, "PNG")
-                        original_zone_base64 = base64.b64encode(original_zone_io.getvalue()).decode("utf-8")
-                        
-                        # 2. Remove staff lines (for detection)
-                        # Ensure remove_staff_lines returns an image suitable for extract_boxes
-                        zone_no_lines = remove_staff_lines(zone_bgr) 
-                        if zone_no_lines is None or zone_no_lines.size == 0:
-                            print(f"Skipping zone {j+1} on page {i+1} after line removal failed.")
-                            continue
+                    # Convert Numpy array to image
+                    zone_image = Image.fromarray(cv2.cvtColor(zone_no_lines, cv2.COLOR_BGR2RGB))
 
-                        # Convert processed zone (e.g., grayscale/binary) back to PIL Image -> BytesIO
-                        # Assuming extract_boxes needs BGR, convert back if needed. 
-                        # If extract_boxes takes grayscale, adjust accordingly.
-                        # If zone_no_lines is Grayscale:
-                        # processed_zone_pil = Image.fromarray(zone_no_lines) 
-                        # If it's BGR (after potential conversion in remove_staff_lines):
-                        processed_zone_pil = Image.fromarray(cv2.cvtColor(zone_no_lines, cv2.COLOR_BGR2RGB)) # Example if needed
+                    # Save image to BytesIO object
+                    zone_io = io.BytesIO()
+                    zone_image.save(zone_io, "PNG")
 
-                        processed_zone_io = io.BytesIO()
-                        processed_zone_pil.save(processed_zone_io, "PNG")
-                        processed_zone_io.seek(0)
+                    # Encode original zone image to base64
+                    original_zone_io = io.BytesIO()
+                    original_zone_image = Image.fromarray(cv2.cvtColor(zone, cv2.COLOR_BGR2RGB))
+                    original_zone_image.save(original_zone_io, "PNG")
+                    original_zone_base64 = base64.b64encode(original_zone_io.getvalue()).decode("utf-8")
 
-                        # 3. Extract bounding boxes using the processed zone
-                        boxes = extract_boxes(processed_zone_io)
+                    # Extract bounding boxes from image
+                    response = {
+                        "filename": original_filename,
+                        "page": i + 1,
+                        "zone": j + 1,
+                        "image": original_zone_base64,
+                        "boxes": extract_boxes(zone_io),
+                        "staff_lines": staff_lines
+                    }
 
-                        # 4. Extract staff line positions from the original zone
-                        staff_line_y_coords = extract_staff_lines(zone_bgr)
+                    print(f"Image {i + 1}, Zone {j + 1} sent")
+                    yield f"data:{json.dumps(response)}\n\n"
+            
+            print("All images sent")
+            # Clean up the uploaded file after processing
+            os.remove(uploaded_filepath)
 
-                        # Construct response for this zone
-                        response = {
-                            "session_id": session_id,
-                            "page": i + 1,
-                            "zone": j + 1,
-                            "image_original": original_zone_base64, # Base64 encoded original zone
-                            "boxes": boxes, # Dictionary of detected boxes per class
-                            "staff_lines_y": staff_line_y_coords # List of y-coordinates
-                        }
-                        
-                        # Yield the JSON response for the current zone
-                        yield f"data: {json.dumps(response)}\n\n"
-                        print(f"Sent: Page {i + 1}, Zone {j + 1}")
-                        total_zones_processed += 1
+            # Clear the state for this session ID
+            del uploaded_files_state[session_id]
 
-                print(f"Finished processing. Total zones sent: {total_zones_processed}")
-                yield f"data: {json.dumps({'status': 'done', 'total_pages': len(images), 'total_zones': total_zones_processed})}\n\n"
-
-            except Exception as e:
-                current_app.logger.error(f"Error during streaming for session {session_id}: {e}", exc_info=True)
-                # Send an error message through the stream
-                yield f"data: {json.dumps({'error': f'An error occurred during processing: {e}'})}\n\n"
-            finally:
-                # Clean up: remove the uploaded file and session state
-                if session_id in uploaded_files_state:
-                    file_to_remove = uploaded_files_state[session_id]["path"]
-                    if os.path.exists(file_to_remove):
-                        try:
-                            os.remove(file_to_remove)
-                            print(f"Cleaned up file: {file_to_remove}")
-                        except OSError as rm_err:
-                            current_app.logger.error(f"Error removing file {file_to_remove}: {rm_err}")
-                    del uploaded_files_state[session_id]
-                    print(f"Removed session state for: {session_id}")
+            yield "data:done\n\n"
 
         # Return the streaming response
         return Response(generate(), mimetype="text/event-stream")
@@ -225,15 +174,33 @@ class GenerateAudioResource(Resource):
         input_data = request.get_json()
         music_sheet = input_data.get("music_sheet")
         measure_playtime = input_data.get("measure_playtime")
+        audio_theme = input_data.get("audio_theme")
 
         if not isinstance(music_sheet, list):
             return {"error": "Request body must be a JSON list"}, 400
 
-        filename = combine_audio(music_sheet, measure_playtime)
+        filename, checkpoints = combine_audio(music_sheet, measure_playtime, audio_theme)
 
-        return send_file(
-            filename,
-            mimetype="audio/mpeg",
-            as_attachment=True,
-            download_name=os.path.basename(filename),
+        # Create multipart response with audio file and checkpoints
+        with open(filename, "rb") as audio_file:
+            audio_data = audio_file.read()
+
+        boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+
+        response_body = (
+            f"--{boundary}\r\n"
+            "Content-Type: application/json\r\n\r\n"
+            f"{json.dumps(checkpoints)}\r\n"
+            f"--{boundary}\r\n"
+            "Content-Type: audio/mp3\r\n"
+            f"Content-Disposition: attachment; filename={filename}\r\n\r\n"
+        ).encode("utf-8") + audio_data + f"\r\n--{boundary}--\r\n".encode("utf-8")
+
+        # Delete the audio file after sending it
+        os.remove(filename)
+
+        return Response(
+            response_body,
+            mimetype=f"multipart/mixed; boundary={boundary}",
+            headers={"Content-Length": str(len(response_body))},
         )

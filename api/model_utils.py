@@ -28,8 +28,7 @@ def extract_boxes(image_io: io.BytesIO) -> list:
         
     try:
         # Decode image ensuring it's in the format the model expects (usually BGR)
-        image_np = np.frombuffer(image_io.getvalue(), np.uint8)
-        image = cv2.imdecode(image_np, cv2.IMREAD_COLOR) 
+        image = cv2.imdecode(np.frombuffer(image_io.getvalue(), np.uint8), cv2.IMREAD_COLOR)
         
         if image is None:
             print("Error: Could not decode image in extract_boxes")
@@ -38,31 +37,20 @@ def extract_boxes(image_io: io.BytesIO) -> list:
         # Perform inference
         results = model(image, device=DEVICE) # Pass device explicitly if needed
 
-        # Initialize list to hold bounding boxes for each class
-        box_coordinates = {name: [] for name in CLASS_NAMES} # Use names as keys
+        # Initialize a list to hold bounding boxes for each class
+        box_coordinates = [[] for _ in range(NUMBER_OF_CLASSES)]
 
-        # Iterate through detections
+        # Iterate through detections and store bounding box coordinates
         for result in results:
-            if result.boxes is None: continue
-            
             for box in result.boxes:
-                class_id = int(box.cls[0].item())
-                if 0 <= class_id < len(CLASS_NAMES):
-                    class_name = CLASS_NAMES[class_id]
-                    x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    confidence = box.conf[0].item() # Get confidence score
-                    
-                    # Store dictionary with coords and confidence
-                    box_info = {
-                        "x1": x1, "y1": y1, "x2": x2, "y2": y2,
-                        "confidence": confidence 
-                    }
-                    box_coordinates[class_name].append(box_info)
-                else:
-                    print(f"Warning: Detected unknown class ID: {class_id}")
+                class_id = int(box.cls[0].item())  # Get class ID
+                x1, y1, x2, y2 = box.xyxy[0].tolist()  # Get bounding box coordinates
+                box_coordinates[class_id].append((x1, y1, x2, y2))
+
+        return box_coordinates
 
         return box_coordinates # Return dictionary keyed by class name
 
     except Exception as e:
         print(f"Error during model inference: {e}")
-        return {name: [] for name in CLASS_NAMES} # Return empty dict on error
+        return [[] for _ in range(NUMBER_OF_CLASSES)] # Return empty boxes for each class

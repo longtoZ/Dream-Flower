@@ -50,7 +50,10 @@ FLAG_WEIGHT = {
 def generate_treble_staff_lines(staff_lines, line_space):
     treble_staff_lines = {}
 
-    # Extend 3 more staff lines for treble clef above
+    # Extend 6 more staff lines for treble clef above
+    treble_staff_lines["D7"] = staff_lines[0][1] - line_space*6
+    treble_staff_lines["B6"] = staff_lines[0][1] - line_space*4
+    treble_staff_lines["G6"] = staff_lines[0][1] - line_space*4
     treble_staff_lines["E6"] = staff_lines[0][1] - line_space*3
     treble_staff_lines["C6"] = staff_lines[0][1] - line_space*2
     treble_staff_lines["A5"] = staff_lines[0][1] - line_space
@@ -84,10 +87,13 @@ def generate_bass_staff_lines(staff_lines, line_space):
     bass_staff_lines["B2"] = staff_lines[8][1]
     bass_staff_lines["G2"] = staff_lines[9][1]
 
-    # Extend 3 more staff lines for bass clef below
+    # Extend 6 more staff lines for bass clef below
     bass_staff_lines["E2"] = staff_lines[9][1] + line_space
     bass_staff_lines["C2"] = staff_lines[9][1] + line_space*2
     bass_staff_lines["A1"] = staff_lines[9][1] + line_space*3
+    bass_staff_lines["F1"] = staff_lines[9][1] + line_space*4
+    bass_staff_lines["D1"] = staff_lines[9][1] + line_space*5
+    bass_staff_lines["B0"] = staff_lines[9][1] + line_space*6
 
     return bass_staff_lines
 
@@ -131,14 +137,14 @@ def generate_zones(boxes, line_space, treble_staff_lines, bass_staff_lines):
                 continue
             
             # Check if the coordinates are within treble zone
-            if (box[3] - treble_staff_lines["E6"] >= treble_staff_lines["E6"] - box[1]) and (treble_staff_lines["F3"] - box[1] >= box[3] - treble_staff_lines["F3"]):
+            if (treble_staff_lines["F3"] - box[1] >= box[3] - treble_staff_lines["F3"]):
                 for key in treble_zones:
                     if (symbol.count(key) > 0):
                         treble_zones[key].append({"symbol": symbol, "box": box})
                         break
                         
             # Check if the coordinates are within bass zone
-            elif (box[3] - bass_staff_lines["G4"] >= bass_staff_lines["G4"] - box[1]) and (bass_staff_lines["A1"] - box[1] >= box[3] - bass_staff_lines["A1"]):
+            elif (box[3] - bass_staff_lines["G4"] >= bass_staff_lines["G4"] - box[1]):
                 for key in bass_zones:
                     if (symbol.count(key) > 0):
                         bass_zones[key].append({"symbol": symbol, "box": box})

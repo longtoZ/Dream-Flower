@@ -11,11 +11,3 @@ export const ConvertToSheetProvider = ({children}) => {
         </ConvertToSheetContext.Provider>
     );
 };
-
-export const useConvertToSheet = () => {
-    const context = useContext(ConvertToSheetContext);
-    if (!context) {
-        throw new Error("useConvertToSheet must be used within a ConvertToSheetProvider");
-    }
-    return context;
-};

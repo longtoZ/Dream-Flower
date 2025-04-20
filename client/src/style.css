@@ -25,8 +25,14 @@ body {
     color: #fff;
 }
 
-::-webkit-scrollbar-track {
-    display: none;
+::-webkit-scrollbar {
+    width: 8px;
+    background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2C2F38 !important;
+    border-radius: 10px;
 }
 
 .scrollbar-hide::-webkit-scrollbar {

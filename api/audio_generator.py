@@ -1,93 +1,106 @@
 from pydub import AudioSegment
+from pydub.effects import low_pass_filter, high_pass_filter
 from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
+import random
 
 AudioSegment.converter = "ffmpeg-build/bin/ffmpeg.exe"
 AudioSegment.ffmpeg = "ffmpeg-build/bin/ffmpeg.exe"
 AudioSegment.ffprobe = "ffmpeg-build/bin/ffprobe.exe"
 
-TARGET_TREBLE_DBFS = -20
-TARGET_BASS_DBFS = -20
+TARGET_DBFS = {
+    "treble": -25,  # Lowered for more headroom
+    "bass": -25
+}
 
-def generate_audio(zone, measure_playtime, note_playtime):
-    # Calculate the total length of the zone's audio since the measure playtime is not constant (changing in time_signature)
+CHEKPOINTS = {
+    "page": 1,
+    "zone": 1,
+    "measure": 1,
+    "time": 0,
+    "checkpoints": []
+}
+
+USED_NOTES = {}
+
+FOLDER_PATH = ["sounds_modify/", ""]
+
+def generate_audio(zone, zone_name, measure_playtime, note_playtime):
     original_length = sum([measure_playtime * measure["measure_duration"] for measure in zone])
-
+    chord_delay = 50 if zone_name == "treble" else 100  # Reduced for crisper sound
     final_audio = AudioSegment.silent(duration=int(original_length * 1.25))
     next_position = 0
 
     for measure in zone:
-        # Calculate the actual measure playtime based on the measure duration (reltaed to time coefficient of each measure)
         actual_measure_playtime = measure_playtime * measure["measure_duration"]
         measure_audio = AudioSegment.silent(duration=int(actual_measure_playtime * 1.25))
         symbol_idx = 0
 
         for symbol in measure["symbols"]:
-            if (symbol.get("notes")):
-                # Adjust the volume of the notes before overlaying them
+            if symbol.get("notes"):
                 num_notes = len(symbol["notes"])
-                notes = [AudioSegment.from_mp3(f"sounds_modify/{note}.mp3").apply_gain(-3 * (num_notes - 1)) for note in symbol["notes"]]
-                
-                # Create a chord by overlaying all notes
+                notes = []
+                for i, note in enumerate(symbol["notes"]):
+                    if note not in USED_NOTES:
+                        USED_NOTES[note] = AudioSegment.from_mp3(f"{''.join(FOLDER_PATH)}{note}.mp3")
+                    # Lower gain more aggressively and pan notes slightly
+                    note_audio = USED_NOTES[note].apply_gain(-4 * (num_notes - 1))
+                    pan_value = 0.2 * (i % 2 * 2 - 1)  # Alternate left (-0.2) and right (0.2)
+                    note_audio = note_audio.pan(pan_value)
+                    notes.append(note_audio)
+
+                # Create chord with slight time offsets to reduce phase interference
                 chord = notes[0]
-                for note in notes[1:]:
-                    chord = chord.overlay(note)
-                
-                # Set the duration
-                # If the note doesn't have a flag, the duration is the same as the head type
+                for i, note in enumerate(notes[1:], 1):
+                    chord = chord.overlay(note, position=5 * i)  # 5ms offset per note
+
+                # Set duration
                 duration = 0
-                if (len(symbol["flag_type"]) == 0):
+                if len(symbol["flag_type"]) == 0:
                     duration = note_playtime[symbol["head_type"].replace("dotted_", "").replace("_note", "")]
                 else:
                     duration = note_playtime[symbol["flag_type"]]
-                
-                # Check if the note is dotted
-                if (symbol["head_type"].count("dotted") > 0):
-                    if (len(symbol["flag_type"]) == 0):
+
+                if symbol["head_type"].count("dotted") > 0:
+                    if len(symbol["flag_type"]) == 0:
                         duration += note_playtime[symbol["head_type"].replace("dotted_", "").replace("_note", "")] / 2
                     else:
                         duration += note_playtime[symbol["flag_type"]] / 2
-                
-                # Trim the chord to the correct duration. Add 100% to the duration to make it sound better
-                chord = chord[:int(duration * 2)]
 
-                # Add fade in and fade out to the chord
-                chord = chord.fade_in(100)
-                chord = chord.fade_out(100)
+                # Trim chord to 1.5x duration for less overlap
+                chord = chord[:int(duration * 1.5)]
 
-                # Add the chord to the measure audio
+                # Apply lighter fade for crisper attacks
+                chord = chord.fade_in(50).fade_out(chord_delay)
+
                 measure_audio = measure_audio.overlay(chord, position=symbol_idx)
                 symbol_idx += int(duration)
-                
-            elif (symbol.get("rest")):
-                # measure_audio += AudioSegment.silent(duration=int(note_playtime[symbol["rest"]]))
-                symbol_idx += int(note_playtime[symbol["rest"]])
-        
-        # If the measure audio is longer than the measure playtime, trim it
-        if (len(measure_audio) > int(actual_measure_playtime*1.25)):
-            measure_audio = measure_audio[:int(actual_measure_playtime*1.25)]
-        
-        # Add fade out to the measure audio so that it doesn't cut off abruptly and cause a pop sound
-        measure_audio = measure_audio.fade_in(10).fade_out(int(actual_measure_playtime * 0.25))
 
-        # Add the measure audio to the final audio
+            elif symbol.get("rest"):
+                symbol_idx += int(note_playtime[symbol["rest"]])
+
+        if len(measure_audio) > int(actual_measure_playtime * 1.25):
+            measure_audio = measure_audio[:int(actual_measure_playtime * 1.25)]
+
+        measure_audio = measure_audio.fade_in(10).fade_out(int(actual_measure_playtime * 0.25))
         final_audio = final_audio.overlay(measure_audio, position=next_position)
         next_position += actual_measure_playtime
 
     return final_audio, original_length
 
 def process_zone(data, measure_playtime, note_playtime):
-    treble_audio, original_length = generate_audio(data["treble_zone"], measure_playtime, note_playtime)
-    bass_audio, original_length = generate_audio(data["bass_zone"], measure_playtime, note_playtime)
+    treble_audio, original_length = generate_audio(data["treble_zone"], "treble", measure_playtime, note_playtime)
+    bass_audio, _ = generate_audio(data["bass_zone"], "bass", measure_playtime, note_playtime)
 
-    # Adjust the volume of the treble and bass audio
-    treble_audio = treble_audio.apply_gain(TARGET_TREBLE_DBFS - treble_audio.dBFS)
-    bass_audio = bass_audio.apply_gain(TARGET_BASS_DBFS - bass_audio.dBFS)
+    # Adjust volume with headroom
+    treble_audio = treble_audio.apply_gain(TARGET_DBFS["treble"] - treble_audio.dBFS)
+    bass_audio = bass_audio.apply_gain(TARGET_DBFS["bass"] - bass_audio.dBFS)
 
     mix_audio = treble_audio.overlay(bass_audio)
 
-    if (mix_audio.dBFS > 0):
-        mix_audio = mix_audio.apply_gain(-mix_audio.dBFS - 0.1)
+    # Prevent clipping
+    if mix_audio.max_dBFS > -0.1:
+        mix_audio = mix_audio.apply_gain(-mix_audio.max_dBFS - 0.5)
 
     print(f"Page: {data['page']} - Zone {data['zone']} done")
     return {
@@ -95,7 +108,23 @@ def process_zone(data, measure_playtime, note_playtime):
         "length": original_length,
     }
 
-def combine_audio(music_sheet, measure_playtime):
+def set_checkpoints(music_sheet, measure_playtime):
+    for data in music_sheet:
+        CHEKPOINTS["page"] = data["page"]
+        CHEKPOINTS["zone"] = data["zone"]
+
+        for measure in data["treble_zone"]:
+            CHEKPOINTS["measure"] = measure["measure"]
+            CHEKPOINTS["checkpoints"].append({
+                "page": CHEKPOINTS["page"],
+                "zone": CHEKPOINTS["zone"],
+                "measure": CHEKPOINTS["measure"],
+                "time": CHEKPOINTS["time"],
+            })
+            actual_measure_playtime = measure_playtime * measure["measure_duration"]
+            CHEKPOINTS["time"] += actual_measure_playtime
+
+def combine_audio(music_sheet, measure_playtime, audio_theme):
     note_playtime = {
         "whole": 1 * measure_playtime,
         "half": 0.5 * measure_playtime,
@@ -105,26 +134,42 @@ def combine_audio(music_sheet, measure_playtime):
         "thirty_second": 0.03125 * measure_playtime,
     }
 
+    if audio_theme == "organ":
+        FOLDER_PATH[1] = "organ/"
+        TARGET_DBFS["bass"] = -28  # Slightly lower for organ's rich harmonics
+    elif audio_theme == "violin":
+        FOLDER_PATH[1] = "violin/"
+        TARGET_DBFS["bass"] = -30
+    elif audio_theme == "upright_piano":
+        FOLDER_PATH[1] = "upright_piano/"
+    elif audio_theme == "classical_piano":
+        FOLDER_PATH[1] = "classical_piano/"
+    elif audio_theme == "auditorium_piano":
+        FOLDER_PATH[1] = "auditorium_piano/"
+
+    print("Using audio theme:", FOLDER_PATH[1])
+
     final_audio = AudioSegment.silent(duration=0)
 
-    # Use ThreadPoolExecutor to process zones in parallel
     with ThreadPoolExecutor() as executor:
         results = list(executor.map(process_zone, music_sheet, [measure_playtime] * len(music_sheet), [note_playtime] * len(music_sheet)))
 
-    # Combine all processed zones into the final audio
     last_idx = 0
-
     for mix_audio in results:
         final_audio += AudioSegment.silent(duration=len(mix_audio["audio"]))
         final_audio = final_audio.overlay(mix_audio["audio"], position=last_idx)
 
-        if (final_audio.dBFS > 0):
-            final_audio = final_audio.apply_gain(-final_audio.dBFS - 0.1)
-            
+        if final_audio.max_dBFS > -0.1:
+            final_audio = final_audio.apply_gain(-final_audio.max_dBFS - 0.5)
+
         last_idx += mix_audio["length"]
+
+    if audio_theme == "violin":
+        final_audio = final_audio.low_pass_filter(3000).high_pass_filter(200)
+
+    set_checkpoints(music_sheet, measure_playtime)
 
     filename = str(uuid4())
     final_audio.export(f"output/{filename}.mp3", format="mp3", bitrate="192k")
 
-    # Return the path to the exported file
-    return f"output/{filename}.mp3"
+    return f"output/{filename}.mp3", CHEKPOINTS["checkpoints"]
