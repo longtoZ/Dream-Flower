@@ -10,6 +10,7 @@ const AudioPlayer = ({ audioUrl, jsonData }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [dataList, setDataList] = useState([]);
 
+  const [currentTime, setCurrentTime] = useState("00:00");
   const [isPlaying, setIsPlaying] = useState(false);
   const wavesurferRef = useRef(null);
 
@@ -37,6 +38,22 @@ const AudioPlayer = ({ audioUrl, jsonData }) => {
         return time >= measure["time"]; // For the last measure, check if time is greater than or equal to the last measure's time
       });
 
+      const minutes = Math.floor(audio.currentTime / 60);
+      const seconds = Math.floor(audio.currentTime % 60);
+
+      // If the audio ends, update the player state
+      if (audio.ended) {
+        // Reset the player state of wavesurfer
+        wavesurferRef.current.seekTo(0);
+        wavesurferRef.current.pause();
+
+        setIsPlaying(false);
+        setCurrentTime("00:00");
+        setCurrentIndex(0);
+        return;
+      }
+
+      setCurrentTime(`${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
       setCurrentIndex(currentIndex);
     };
 
@@ -86,10 +103,6 @@ const AudioPlayer = ({ audioUrl, jsonData }) => {
               </div>
             ))}
           </div>
-          {/* <audio ref={audioRef} controls className="w-full max-w-md">
-            <source src={audioUrl} type="audio/mpeg" />
-            Your browser does not support the audio element.
-          </audio> */}
           <div className='w-full flex justify-center flex-col bg-primary rounded-md p-4'>
             <div className="w-full">
               <WaveSurferPlayer
@@ -108,9 +121,12 @@ const AudioPlayer = ({ audioUrl, jsonData }) => {
                 }}
               />
             </div>
+            <div className='text-white text-center mb-2'>
+              {currentTime}
+            </div>
             <button
                 onClick={handlePlayPause}
-                className="block mx-auto p-4 bg-blue-500 w-12 h-12 flex justify-center items-center text-white rounded-[50%] hover:bg-blue-600 transition duration-200"
+                className="block mx-auto p-4 bg-zinc-800 w-12 h-12 flex justify-center items-center text-white rounded-[50%] hover:bg-zinc-600 cursor-pointer transition duration-200"
               >
                 {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
               </button>

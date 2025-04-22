@@ -52,7 +52,7 @@ def generate_treble_staff_lines(staff_lines, line_space):
 
     # Extend 6 more staff lines for treble clef above
     treble_staff_lines["D7"] = staff_lines[0][1] - line_space*6
-    treble_staff_lines["B6"] = staff_lines[0][1] - line_space*4
+    treble_staff_lines["B6"] = staff_lines[0][1] - line_space*5
     treble_staff_lines["G6"] = staff_lines[0][1] - line_space*4
     treble_staff_lines["E6"] = staff_lines[0][1] - line_space*3
     treble_staff_lines["C6"] = staff_lines[0][1] - line_space*2
@@ -176,14 +176,14 @@ def determine_scale(treble_zones, line_space, INDEX_MAP):
 
     if (len(treble_zones["sharp"]) > 0):
         # If there is a sharp symbol near the clef, determine the scale based on the sharp symbol
-        if (treble_zones["sharp"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < line_space/2):
+        if (treble_zones["sharp"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < line_space):
             prev_x = treble_zones["sharp"][0]["box"][2]
 
             while (INDEX_MAP["sharp_index"] < len(treble_zones["sharp"])):
                 curr_x = treble_zones["sharp"][INDEX_MAP["sharp_index"]]["box"][0]
 
                 # Compare the starting x-coordinate of the current box with the ending x-coordinate of the previous box
-                if (abs(curr_x - prev_x) < 10):
+                if (abs(curr_x - prev_x) < line_space/2):
                     scale = f'{str(INDEX_MAP["sharp_index"] + 1)}s'
                 else:
                     break
@@ -194,14 +194,14 @@ def determine_scale(treble_zones, line_space, INDEX_MAP):
 
     if (len(treble_zones["flat"]) > 0):
         # If there is a flat symbol near the clef, determine the scale based on the sharp symbol
-        if (treble_zones["flat"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < line_space/2):
+        if (treble_zones["flat"][0]["box"][0] - treble_zones["clef"][0]["box"][2] < line_space):
             prev_x = treble_zones["flat"][0]["box"][2]
 
             while (INDEX_MAP["flat_index"] < len(treble_zones["flat"])):
                 curr_x = treble_zones["flat"][INDEX_MAP["flat_index"]]["box"][0]
 
                 # Compare the starting x-coordinate of the current box with the ending x-coordinate of the previous box
-                if (abs(curr_x - prev_x) < 10):
+                if (abs(curr_x - prev_x) < line_space/2):
                     scale = f'{str(INDEX_MAP["flat_index"] + 1)}b'
                 else:
                     break
@@ -706,8 +706,10 @@ def convert_to_sheet(data_item, TIME_COEFF):
 
     # Sometimes, the treble or bass zone is not actually themself. Therefore, we need to check their clef symbol to determine the correct zone
     # Create modified treble staff lines list by changing the key to bass staff while keeping the lines coordinates
-    treble_staff_lines_list_modified = [(bass_staff_lines_list[i][0], treble_staff_lines_list[i][1]) for i in range(len(treble_staff_lines_list))]
-    bass_staff_lines_list_modified = [(treble_staff_lines_list[i][0], bass_staff_lines_list[i][1]) for i in range(len(bass_staff_lines_list))]
+
+    # Both treble and bass staff lines are shifted by 3 lines due to the imbalance of higher and lower spare staff lines
+    treble_staff_lines_list_modified = [(bass_staff_lines_list[i][0], treble_staff_lines_list[i + 3][1]) for i in range(len(treble_staff_lines_list) - 3)]
+    bass_staff_lines_list_modified = [(treble_staff_lines_list[i + 3][0], bass_staff_lines_list[i][1]) for i in range(len(bass_staff_lines_list) - 3)]
 
     treble_cleves_coords = [treble_zones["clef"][i]["box"][0] for i in range(1, len(treble_zones["clef"]))]
     bass_cleves_coords = [bass_zones["clef"][i]["box"][0] for i in range(1, len(bass_zones["clef"]))]

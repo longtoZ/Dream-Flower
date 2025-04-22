@@ -1,12 +1,15 @@
 import React from 'react'
 
-const ConfirmDialog = ({ message, onConfirm, onCancel, isOpen }) => {
+const ConfirmDialog = ({ headMessage, subMessage, onConfirm, onCancel, isOpen }) => {
     if (!isOpen) return null;
   
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-[#0000006e]">
             <div className="bg-secondary p-6 rounded-lg shadow-lg">
-                <div className="text-lg">{message}</div>
+                <div className="text-lg">
+                    <h1 className='text-md pb-1'>{headMessage}</h1>
+                    <p className='text-sm opacity-[70%]'>{subMessage}</p>
+                </div>
                 <div className="flex justify-end mt-4">
                     <b
                         className='w-20 bg-transparent mx-1 rounded-md border border-2 border-primary text-xs text-center text-white p-2 cursor-pointer hover:bg-primary transition-all duration-100 ease'

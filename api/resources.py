@@ -8,6 +8,7 @@ import time # For waiting
 
 from flask import request, Response, jsonify, current_app, send_file
 from flask_restful import Resource
+from flask_socketio import emit
 from pdf2image import convert_from_path, pdfinfo_from_path
 from PIL import Image
 import cv2
@@ -19,6 +20,8 @@ from image_utils import separate_staff_zones, remove_staff_lines, extract_staff_
 from model_utils import extract_boxes # Use the function from model_utils
 from sheet_converter import convert_to_sheet
 from audio_generator import combine_audio
+
+from extensions import socketio
 
 # --- API Resources ---
 
@@ -170,18 +173,25 @@ class GenerateAudioResource(Resource):
         Receives a list of music sheet data via POST, generates audio for each item,
         and returns a list of audio results.
         """
+
         # Parse the JSON input data from the request body
         input_data = request.get_json()
         music_sheet = input_data.get("music_sheet")
         measure_playtime = input_data.get("measure_playtime")
         audio_theme = input_data.get("audio_theme")
 
+        # Get the socket ID from the request context
+        socket_id = input_data.get("socket_id")
+        print(f"Socket ID: {socket_id}")
+
         if not isinstance(music_sheet, list):
             return {"error": "Request body must be a JSON list"}, 400
-
-        filename, checkpoints = combine_audio(music_sheet, measure_playtime, audio_theme)
+        
+        filename, checkpoints = combine_audio({"socket_io": socketio, "socket_id": socket_id}, music_sheet, measure_playtime, audio_theme)
 
         # Create multipart response with audio file and checkpoints
+        socketio.emit("status_update", {"message": "Audio file is being sent..."}, namespace="/audio", to=socket_id)
+
         with open(filename, "rb") as audio_file:
             audio_data = audio_file.read()
 
@@ -204,3 +214,4 @@ class GenerateAudioResource(Resource):
             mimetype=f"multipart/mixed; boundary={boundary}",
             headers={"Content-Length": str(len(response_body))},
         )
+

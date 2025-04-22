@@ -4,6 +4,7 @@ import { AudioContext } from '../../context/Audio';
 
 import SheetNavigator from './components/SheetNavigator';
 import AudioPlayer from './components/AudioPlayer';
+import NotFound from '../../components/NotFound'
 
 const ConvertToSheetLayout = () => {
     const rawData = useContext(ConvertToSheetContext).convertToSheet;
@@ -44,10 +45,16 @@ const ConvertToSheetLayout = () => {
 
     return (
         <div className="p-4 h-screen overflow-auto">
-            <div className="grid grid-cols-1 gap-4 mb-4">
-                <SheetNavigator receivedData={musicSheetData} />
-                {audioUrl && <AudioPlayer audioUrl={audioUrl} jsonData={jsonData} />}
-            </div>
+            {rawData ? (
+                <div className="grid grid-cols-1 gap-4 mb-4">
+                    <SheetNavigator receivedData={musicSheetData} />
+                    {audioUrl && <AudioPlayer audioUrl={audioUrl} jsonData={jsonData} />}
+                </div>
+            ) : (
+                <NotFound />
+            )
+            }
+
         </div>
     )
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import ReactJson from 'react-json-view';
+import { io } from 'socket.io-client';
 
 import { AudioContext } from '../../../context/Audio';
 
@@ -22,6 +23,41 @@ const SheetNavigator = ({ receivedData }) => {
   
   const setAudioUrl = useContext(AudioContext).setAudioUrl;
   const setJsonData = useContext(AudioContext).setJsonData;
+
+  const [generationProgress, setGenerationProgress] = useState([]);
+  const generationProgressRef = useRef(null);
+
+  useEffect(() => {
+    console.log('Connecting to socket server...');
+
+    const socket = io('http://localhost:5000/audio', {
+      transports: ['websocket'],
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to socket server', socket.id);
+
+      // Store the socket ID in session storage
+      sessionStorage.setItem('socketId', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from socket server');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+
+    socket.on("status_update", (data) => {
+      setGenerationProgress((prevProgress) => [...prevProgress, data]);
+    })
+
+    return () => {
+      console.log('Cleaning up socket connection...');
+      socket.disconnect();
+    }
+  }, []);
 
   // Initialize state once data is available
   useEffect(() => {
@@ -76,11 +112,23 @@ const SheetNavigator = ({ receivedData }) => {
       setIsDurationCorrect(() => selectedData?.measure_duration === selectedData?.measure_playtime);
   }, [selectedData]);
 
+  useEffect(() => {
+    if (generationProgressRef.current) {
+      generationProgressRef.current.scrollTop = generationProgressRef.current.scrollHeight;
+    }
+  }, [generationProgress]);
+
   const handleGenerateAudio = async () => {
+    // Clear the generation progress
+    setGenerationProgress([]);
+
+    console.log("Socket ID:", sessionStorage.getItem('socketId'));
+
     const data = {
       "music_sheet": musicSheetData,
       "measure_playtime": parseInt(measurePlaytimeRef.current.value) || 0,
       "audio_theme": selectedAudioTheme,
+      "socket_id": sessionStorage.getItem('socketId'),
     }
 
     try {
@@ -137,248 +185,274 @@ const SheetNavigator = ({ receivedData }) => {
 
   return (
     <div
-      className="flex items-center justify-center"
+      className="flex items-start justify-center mb-10"
     >
-      <div
-        className="h-[94vh] w-[40vw] mx-10">
+      <div className="w-[40vw] mx-10">
         <h1 className="mt-10 text-2xl font-bold text-white mb-6">Sheet Navigation</h1>
         <div className='w-full p-6 rounded-lg shadow-lg bg-secondary'>
+          {receivedData.length > 0 ? (
+            <>
+              {/* Dropdown Menus */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+                {/* Page Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Page
+                  </label>
+                  <select
+                    value={selectedPage ?? ''}
+                    onChange={(e) => {
+                      const newPage = Number(e.target.value);
+                      setSelectedPage(newPage);
+                      const newZones = [
+                        ...new Set(
+                          musicSheetData
+                            .filter((item) => item.page === newPage)
+                            .map((item) => item.zone)
+                        ),
+                      ];
+                      const newZone = newZones[0] || 1;
+                      setSelectedZone(newZone);
+                      const newMeasures = [
+                        ...new Set(
+                          musicSheetData
+                            .find(
+                              (item) =>
+                                item.page === newPage && item.zone === newZone
+                            )
+                            ?.[selectedClef]?.map((measure) => measure.measure) || []
+                        ),
+                      ];
+                      setSelectedMeasure(newMeasures[0] || 0);
+                    }}
+                    className="w-full p-2 rounded-sm text-white focus:outline-none"
+                    style={{ backgroundColor: '#30323b' }}
+                    disabled={!pages.length}
+                  >
+                    {pages.length > 0 ? (
+                      pages.map((page) => (
+                        <option key={`page-${page}`} value={page}>
+                          Page {page}
+                        </option>
+                      ))
+                    ) : (
+                      <option key="no-page" value="">
+                        No Pages
+                      </option>
+                    )}
+                  </select>
+                </div>
 
-          {/* Dropdown Menus */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-            {/* Page Dropdown */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">
-                Page
-              </label>
-              <select
-                value={selectedPage ?? ''}
-                onChange={(e) => {
-                  const newPage = Number(e.target.value);
-                  setSelectedPage(newPage);
-                  const newZones = [
-                    ...new Set(
-                      musicSheetData
-                        .filter((item) => item.page === newPage)
-                        .map((item) => item.zone)
-                    ),
-                  ];
-                  const newZone = newZones[0] || 1;
-                  setSelectedZone(newZone);
-                  const newMeasures = [
-                    ...new Set(
-                      musicSheetData
-                        .find(
-                          (item) =>
-                            item.page === newPage && item.zone === newZone
-                        )
-                        ?.[selectedClef]?.map((measure) => measure.measure) || []
-                    ),
-                  ];
-                  setSelectedMeasure(newMeasures[0] || 0);
-                }}
-                className="w-full p-2 rounded-sm text-white focus:outline-none"
-                style={{ backgroundColor: '#30323b' }}
-                disabled={!pages.length}
+                {/* Zone Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Zone
+                  </label>
+                  <select
+                    title='Zone'
+                    value={selectedZone ?? ''}
+                    onChange={(e) => {
+                      const newZone = Number(e.target.value);
+                      setSelectedZone(newZone);
+                      const newMeasures = [
+                        ...new Set(
+                          musicSheetData
+                            .find(
+                              (item) =>
+                                item.page === selectedPage && item.zone === newZone
+                            )
+                            ?.[selectedClef]?.map((measure) => measure.measure) || []
+                        ),
+                      ];
+                      setSelectedMeasure(newMeasures[0] || 0);
+                    }}
+                    className="w-full p-2 rounded-sm text-white focus:outline-none bg-primary"
+                    disabled={!zones.length}
+                  >
+                    {zones.length > 0 ? (
+                      zones.map((zone) => (
+                        <option key={`zone-${zone}`} value={zone}>
+                          Zone {zone}
+                        </option>
+                      ))
+                    ) : (
+                      <option key="no-zone" value="">
+                        No Zones
+                      </option>
+                    )}
+                  </select>
+                </div>
+
+                {/* Measure Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Measure
+                  </label>
+                  <select
+                    title='Measure'
+                    value={selectedMeasure ?? ''}
+                    onChange={(e) => setSelectedMeasure(Number(e.target.value))}
+                    className="w-full p-2 rounded-sm text-white focus:outline-none bg-primary"
+                    disabled={!measures.length}
+                  >
+                    {measures.length > 0 ? (
+                      measures.map((measure) => (
+                        <option key={`measure-${measure}`} value={measure}>
+                          Measure {measure}
+                        </option>
+                      ))
+                    ) : (
+                      <option key="no-measure" value="">
+                        No Measures
+                      </option>
+                    )}
+                  </select>
+                </div>
+
+                {/* Clef Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Clef
+                  </label>
+                  <select
+                    title='Clef'
+                    value={selectedClef}
+                    onChange={(e) => {
+                      const newClef = e.target.value;
+                      setSelectedClef(newClef);
+                      const newMeasures = [
+                        ...new Set(
+                          musicSheetData
+                            .find(
+                              (item) =>
+                                item.page === selectedPage && item.zone === selectedZone
+                            )
+                            ?.[newClef]?.map((measure) => measure.measure) || []
+                        ),
+                      ];
+                      setSelectedMeasure(newMeasures[0] || 0);
+                    }}
+                    className="w-full p-2 rounded-sm text-white focus:outline-none bg-primary"
+                  >
+                    {[
+                      { value: 'treble_zone', label: 'Treble' },
+                      { value: 'bass_zone', label: 'Bass' },
+                    ].map((clef) => (
+                      <option key={`clef-${clef.value}`} value={clef.value}>
+                        {clef.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* JSON Viewer */}
+              <div
+                className="mb-6 p-4 rounded-sm bg-primary"
               >
-                {pages.length > 0 ? (
-                  pages.map((page) => (
-                    <option key={`page-${page}`} value={page}>
-                      Page {page}
-                    </option>
-                  ))
+                <h2 className="text-lg font-semibold text-white mb-2">
+                  Selected JSON Data
+                </h2>
+                {selectedData ? (
+                  <ReactJson
+                    src={selectedData}
+                    theme={{
+                      base00: 'transparent',    // Background
+                      base01: '#2e2a3b',        // Secondary background
+                      base02: '#3b354a',        // Highlights
+                      base03: '#cfcfe0',        // Comments / faint text
+                      base04: '#e0e0ff',        // Secondary text
+                      base05: '#ffffff',        // Main text
+                      base06: '#c3f0ca',        // Attributes / variables
+                      base07: '#d4bfff',        // Function names / brighter lilac
+                      base08: '#ff6b81',        // Errors / invalid
+                      base09: '#ffd166',        // Numbers
+                      base0A: '#f9f871',        // Constants / values
+                      base0B: '#95f9c3',        // Strings (light mint green)
+                      base0C: '#7ec180',        // Booleans / regex (violet-lavender)
+                      base0D: '#b388ff',        // Keys (bold violet)
+                      base0E: '#d67fff',        // Keywords (soft pink-violet)
+                      base0F: '#f78fb3',        // Special cases / undefined
+                    }}
+                    style={{ padding: '1rem', lineHeight: '1.3', height: '350px', overflowY: 'auto', fontSize: '0.9rem' }}
+                    displayDataTypes={false}
+                    displayObjectSize={false}
+                    indentWidth={4}
+                    onEdit={(edit) => {
+                      const { updated_src, namespace, existing_src } = edit;
+
+                      // if (namespace.includes('notes') && !/^[A-G][0-8]$/.test(updated_src)) {
+                      //   console.log('Invalid note:', updated_src, namespace);
+                      //   return false; // Block invalid note
+                      // }
+                      // if (namespace.includes('duration') && typeof updated_src !== 'number') {
+                      //   console.log('Invalid duration:', updated_src);
+                      //   return false; // Block invalid duration
+                      // }
+                      setMusicSheetData((prevData) => {
+                        const updatedData = [...prevData];
+                        const index = updatedData.findIndex((item) => item.page === selectedPage && item.zone === selectedZone);
+                        if (index !== -1) {
+                          updatedData[index][selectedClef][selectedMeasure] = updated_src;
+                        }
+                        
+                        return updatedData;
+                      })
+                    }}
+                  />
                 ) : (
-                  <option key="no-page" value="">
-                    No Pages
-                  </option>
+                  <p className="text-gray-400">No data available for the selected options.</p>
                 )}
-              </select>
-            </div>
+              </div>
 
-            {/* Zone Dropdown */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">
-                Zone
-              </label>
-              <select
-                title='Zone'
-                value={selectedZone ?? ''}
-                onChange={(e) => {
-                  const newZone = Number(e.target.value);
-                  setSelectedZone(newZone);
-                  const newMeasures = [
-                    ...new Set(
-                      musicSheetData
-                        .find(
-                          (item) =>
-                            item.page === selectedPage && item.zone === newZone
-                        )
-                        ?.[selectedClef]?.map((measure) => measure.measure) || []
-                    ),
-                  ];
-                  setSelectedMeasure(newMeasures[0] || 0);
-                }}
-                className="w-full p-2 rounded-sm text-white focus:outline-none bg-primary"
-                disabled={!zones.length}
+              {/* Duration Validation */}
+              <div
+                className="p-4 rounded-sm bg-primary"
               >
-                {zones.length > 0 ? (
-                  zones.map((zone) => (
-                    <option key={`zone-${zone}`} value={zone}>
-                      Zone {zone}
-                    </option>
-                  ))
+                <h2 className="text-lg font-semibold text-white mb-2">
+                  Duration Validation
+                </h2>
+                {selectedData ? (
+                  <p
+                    className={`text-sm ${isDurationCorrect ? 'text-green-400' : 'text-red-400'}`}
+                  >
+                    Duration is {isDurationCorrect ? `Correct (${selectedData.measure_duration})` : `Incorrect (${selectedData.measure_duration})`}
+                  </p>
                 ) : (
-                  <option key="no-zone" value="">
-                    No Zones
-                  </option>
+                  <p className="text-gray-400">No duration data available.</p>
                 )}
-              </select>
-            </div>
-
-            {/* Measure Dropdown */}
+              </div>
+            </>
+          ): (
             <div>
-              <label className="block text-sm font-medium text-white mb-1">
-                Measure
-              </label>
-              <select
-                title='Measure'
-                value={selectedMeasure ?? ''}
-                onChange={(e) => setSelectedMeasure(Number(e.target.value))}
-                className="w-full p-2 rounded-sm text-white focus:outline-none bg-primary"
-                disabled={!measures.length}
-              >
-                {measures.length > 0 ? (
-                  measures.map((measure) => (
-                    <option key={`measure-${measure}`} value={measure}>
-                      Measure {measure}
-                    </option>
-                  ))
-                ) : (
-                  <option key="no-measure" value="">
-                    No Measures
-                  </option>
-                )}
-              </select>
+            <h1 className="text-zinc-200 text-center text-lg loading-text">
+              Fetching data, please wait...
+            </h1>
+            <style>
+              {`
+                .loading-text {
+                  animation: pulse 1.5s infinite;
+                }
+                @keyframes pulse {
+                  0% {
+                    opacity: 0.25;
+                  }
+                  50% {
+                    opacity: 1;
+                  }
+                  100% {
+                    opacity: 0.25;
+                  }
+                }
+              `}
+            </style>
             </div>
-
-            {/* Clef Dropdown */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">
-                Clef
-              </label>
-              <select
-                title='Clef'
-                value={selectedClef}
-                onChange={(e) => {
-                  const newClef = e.target.value;
-                  setSelectedClef(newClef);
-                  const newMeasures = [
-                    ...new Set(
-                      musicSheetData
-                        .find(
-                          (item) =>
-                            item.page === selectedPage && item.zone === selectedZone
-                        )
-                        ?.[newClef]?.map((measure) => measure.measure) || []
-                    ),
-                  ];
-                  setSelectedMeasure(newMeasures[0] || 0);
-                }}
-                className="w-full p-2 rounded-sm text-white focus:outline-none bg-primary"
-              >
-                {[
-                  { value: 'treble_zone', label: 'Treble' },
-                  { value: 'bass_zone', label: 'Bass' },
-                ].map((clef) => (
-                  <option key={`clef-${clef.value}`} value={clef.value}>
-                    {clef.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* JSON Viewer */}
-          <div
-            className="mb-6 p-4 rounded-sm bg-primary"
-          >
-            <h2 className="text-lg font-semibold text-white mb-2">
-              Selected JSON Data
-            </h2>
-            {selectedData ? (
-              <ReactJson
-                src={selectedData}
-                theme={{
-                  base00: 'transparent',    // Background
-                  base01: '#2e2a3b',        // Secondary background
-                  base02: '#3b354a',        // Highlights
-                  base03: '#cfcfe0',        // Comments / faint text
-                  base04: '#e0e0ff',        // Secondary text
-                  base05: '#ffffff',        // Main text
-                  base06: '#c3f0ca',        // Attributes / variables
-                  base07: '#d4bfff',        // Function names / brighter lilac
-                  base08: '#ff6b81',        // Errors / invalid
-                  base09: '#ffd166',        // Numbers
-                  base0A: '#f9f871',        // Constants / values
-                  base0B: '#95f9c3',        // Strings (light mint green)
-                  base0C: '#7ec180',        // Booleans / regex (violet-lavender)
-                  base0D: '#b388ff',        // Keys (bold violet)
-                  base0E: '#d67fff',        // Keywords (soft pink-violet)
-                  base0F: '#f78fb3',        // Special cases / undefined
-                }}
-                style={{ padding: '1rem', lineHeight: '1.3', height: '350px', overflowY: 'auto', fontSize: '0.9rem' }}
-                displayDataTypes={false}
-                displayObjectSize={false}
-                indentWidth={4}
-                onEdit={(edit) => {
-                  const { updated_src, namespace, existing_src } = edit;
-
-                  // if (namespace.includes('notes') && !/^[A-G][0-8]$/.test(updated_src)) {
-                  //   console.log('Invalid note:', updated_src, namespace);
-                  //   return false; // Block invalid note
-                  // }
-                  // if (namespace.includes('duration') && typeof updated_src !== 'number') {
-                  //   console.log('Invalid duration:', updated_src);
-                  //   return false; // Block invalid duration
-                  // }
-                  setMusicSheetData((prevData) => {
-                    const updatedData = [...prevData];
-                    const index = updatedData.findIndex((item) => item.page === selectedPage && item.zone === selectedZone);
-                    if (index !== -1) {
-                      updatedData[index][selectedClef][selectedMeasure] = updated_src;
-                    }
-                    
-                    return updatedData;
-                  })
-                }}
-              />
-            ) : (
-              <p className="text-gray-400">No data available for the selected options.</p>
-            )}
-          </div>
-
-          {/* Duration Validation */}
-          <div
-            className="p-4 rounded-sm bg-primary"
-          >
-            <h2 className="text-lg font-semibold text-white mb-2">
-              Duration Validation
-            </h2>
-            {selectedData ? (
-              <p
-                className={`text-sm ${isDurationCorrect ? 'text-green-400' : 'text-red-400'}`}
-              >
-                Duration is {isDurationCorrect ? `Correct (${selectedData.measure_duration})` : `Incorrect (${selectedData.measure_duration})`}
-              </p>
-            ) : (
-              <p className="text-gray-400">No duration data available.</p>
-            )}
-          </div>
+          )}
         </div>
         
       </div>
 
-      <div className="h-[94vh] w-[40vw] mx-10">
+      <div className="w-[40vw] mx-10">
         <h1 className="mt-10 text-2xl font-bold text-white mb-6">Sound Options</h1>
         <div className='w-full p-6 rounded-lg shadow-lg bg-secondary'>
           {/* Measure playtime input */}
@@ -418,6 +492,24 @@ const SheetNavigator = ({ receivedData }) => {
           >
             Generate audio
           </button>
+        </div>
+        <h1 className="mt-10 text-2xl font-bold text-white mb-6">Generation Progress</h1>
+        <div className='h-[305px] w-full p-6 rounded-lg shadow-lg bg-secondary'>
+          {generationProgress.length > 0 ? (
+            <div className="overflow-y-auto h-[250px] px-4 py-3" ref={generationProgressRef}>
+              {generationProgress.map((progress, index) => (
+                <div key={index} className="text-zinc-300 mb-2">
+                  {progress["message"].includes("Page") ? (
+                    <p className="bg-transparent hover:bg-primary p-1 rounded-md w-full opacity-75 hover:opacity-100 text-green-400 transition duration-100 ease">&gt; {progress["message"]}</p>
+                  ) : (
+                    <p className="bg-transparent hover:bg-primary p-1 rounded-md w-full opacity-75 hover:opacity-100 text-gray-400 transition duration-100 ease">&gt; {progress["message"]}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-400">No progress updates available.</p>
+          )}
         </div>
       </div>
     </div>

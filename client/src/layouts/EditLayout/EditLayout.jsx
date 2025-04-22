@@ -52,6 +52,8 @@ const EditLayout = () => {
 	const symbolListRef = useRef(null);
 
 	// Confirm dialog operations
+	const [dialogHeadMessage, setDialogHeadMessage] = useState("");
+	const [dialogSubMessage, setDialogSubMessage] = useState("");
 	const [isDialogOpen, setDialogOpen] = useState(false);
 	const [cutPosition, setCutPosition] = useState({x: 0, y: 0});
 
@@ -660,6 +662,10 @@ const EditLayout = () => {
 			setCutPosition({x: coords.x - startPos.x, y: coords.y - startPos.y});
 			console.log("Cut position", coords.x - startPos.x, coords.y - startPos.y, image.width * scale, image.height * scale)
 
+			// Update the messages of the dialog
+			setDialogHeadMessage("Are you sure to cut the image?");
+			setDialogSubMessage("The image will be cut into two halves. The original image will be deleted.");
+
 			// Show the confirmation dialog
 			setDialogOpen(true);
 		}
@@ -923,12 +929,8 @@ const EditLayout = () => {
 					</div>
 				</div>				
 
-				<ConfirmDialog message={
-					<>
-						<h1 className='text-md pb-1'>Are you sure you want to cut the image?</h1>
-						<p className='text-sm opacity-[70%]'>This action cannot be undone.</p>
-					</>
-				} isOpen={isDialogOpen} setIsOpen={setDialogOpen} onConfirm={handleDialogConfirm} onCancel={handleDialogCancel} />
+				<ConfirmDialog headMessage={dialogHeadMessage} subMessage={dialogSubMessage}
+				isOpen={isDialogOpen} setIsOpen={setDialogOpen} onConfirm={handleDialogConfirm} onCancel={handleDialogCancel} />
 			</div>
 
 		</div>

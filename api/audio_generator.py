@@ -2,7 +2,6 @@ from pydub import AudioSegment
 from pydub.effects import low_pass_filter, high_pass_filter
 from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
-import random
 
 AudioSegment.converter = "ffmpeg-build/bin/ffmpeg.exe"
 AudioSegment.ffmpeg = "ffmpeg-build/bin/ffmpeg.exe"
@@ -25,13 +24,18 @@ USED_NOTES = {}
 
 FOLDER_PATH = ["sounds_modify/", ""]
 
+SOCKET = {
+    "socket_io": None,
+    "socket_id": None
+}
+
 def generate_audio(zone, zone_name, measure_playtime, note_playtime):
     original_length = sum([measure_playtime * measure["measure_duration"] for measure in zone])
     chord_delay = 50 if zone_name == "treble" else 100  # Reduced for crisper sound
     final_audio = AudioSegment.silent(duration=int(original_length * 1.25))
     next_position = 0
 
-    for measure in zone:
+    for measure_idx, measure in enumerate(zone):
         actual_measure_playtime = measure_playtime * measure["measure_duration"]
         measure_audio = AudioSegment.silent(duration=int(actual_measure_playtime * 1.25))
         symbol_idx = 0
@@ -86,6 +90,8 @@ def generate_audio(zone, zone_name, measure_playtime, note_playtime):
         final_audio = final_audio.overlay(measure_audio, position=next_position)
         next_position += actual_measure_playtime
 
+        SOCKET["socket_io"].emit("status_update", {"message": f"{zone_name.capitalize()} - Measure {measure['measure']} done"}, namespace="/audio", to=SOCKET["socket_id"])
+
     return final_audio, original_length
 
 def process_zone(data, measure_playtime, note_playtime):
@@ -103,6 +109,8 @@ def process_zone(data, measure_playtime, note_playtime):
         mix_audio = mix_audio.apply_gain(-mix_audio.max_dBFS - 0.5)
 
     print(f"Page: {data['page']} - Zone {data['zone']} done")
+    SOCKET["socket_io"].emit("status_update", {"message": f"Page: {data['page']} - Zone {data['zone']} done"}, namespace="/audio", to=SOCKET["socket_id"])
+
     return {
         "audio": mix_audio,
         "length": original_length,
@@ -124,7 +132,13 @@ def set_checkpoints(music_sheet, measure_playtime):
             actual_measure_playtime = measure_playtime * measure["measure_duration"]
             CHEKPOINTS["time"] += actual_measure_playtime
 
-def combine_audio(music_sheet, measure_playtime, audio_theme):
+def combine_audio(socket, music_sheet, measure_playtime, audio_theme):
+    SOCKET["socket_io"] = socket["socket_io"]
+    SOCKET["socket_id"] = socket["socket_id"]
+
+    print(f"Socket IO: {SOCKET['socket_io']}")
+    print(f"Socket ID: {SOCKET['socket_id']}")
+
     note_playtime = {
         "whole": 1 * measure_playtime,
         "half": 0.5 * measure_playtime,
@@ -147,16 +161,20 @@ def combine_audio(music_sheet, measure_playtime, audio_theme):
     elif audio_theme == "auditorium_piano":
         FOLDER_PATH[1] = "auditorium_piano/"
 
-    print("Using audio theme:", FOLDER_PATH[1])
+    SOCKET["socket_io"].emit("status_update", {"message": f"Select audio theme: {audio_theme}"}, namespace="/audio", to=SOCKET["socket_id"])
 
     final_audio = AudioSegment.silent(duration=0)
 
+    SOCKET["socket_io"].emit("status_update", {"message": "Start generating audio concurently..."}, namespace="/audio", to=SOCKET["socket_id"])
+
+    # Use ThreadPoolExecutor for concurrent processing
     with ThreadPoolExecutor() as executor:
         results = list(executor.map(process_zone, music_sheet, [measure_playtime] * len(music_sheet), [note_playtime] * len(music_sheet)))
 
     last_idx = 0
-    for mix_audio in results:
-        final_audio += AudioSegment.silent(duration=len(mix_audio["audio"]))
+    for i, mix_audio in enumerate(results):
+        adding_length = len(mix_audio["audio"]) if i == 0 else mix_audio["length"]
+        final_audio += AudioSegment.silent(duration=adding_length)
         final_audio = final_audio.overlay(mix_audio["audio"], position=last_idx)
 
         if final_audio.max_dBFS > -0.1:
@@ -167,9 +185,12 @@ def combine_audio(music_sheet, measure_playtime, audio_theme):
     if audio_theme == "violin":
         final_audio = final_audio.low_pass_filter(3000).high_pass_filter(200)
 
+    SOCKET["socket_io"].emit("status_update", {"message": "Setting checkpoints for measures..."}, namespace="/audio", to=SOCKET["socket_id"])
     set_checkpoints(music_sheet, measure_playtime)
+    SOCKET["socket_io"].emit("status_update", {"message": "Audio generation is completed! Exporting to file..."}, namespace="/audio", to=SOCKET["socket_id"])
 
     filename = str(uuid4())
     final_audio.export(f"output/{filename}.mp3", format="mp3", bitrate="192k")
+    SOCKET["socket_io"].emit("status_update", {"message": "Audio file is ready!"}, namespace="/audio", to=SOCKET["socket_id"])
 
     return f"output/{filename}.mp3", CHEKPOINTS["checkpoints"]
