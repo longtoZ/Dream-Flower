@@ -207,7 +207,7 @@ class GenerateAudioResource(Resource):
         ).encode("utf-8") + audio_data + f"\r\n--{boundary}--\r\n".encode("utf-8")
 
         # Delete the audio file after sending it
-        os.remove(filename)
+        # os.remove(filename)
 
         return Response(
             response_body,

@@ -13,6 +13,7 @@ const AudioPlayer = ({ audioUrl, jsonData }) => {
   const [currentTime, setCurrentTime] = useState("00:00");
   const [isPlaying, setIsPlaying] = useState(false);
   const wavesurferRef = useRef(null);
+  const audioPlayerRef = useRef(null);
 
   const handlePlayPause = () => {
     if (wavesurferRef.current) {
@@ -125,11 +126,11 @@ const AudioPlayer = ({ audioUrl, jsonData }) => {
               {currentTime}
             </div>
             <button
-                onClick={handlePlayPause}
-                className="block mx-auto p-4 bg-zinc-800 w-12 h-12 flex justify-center items-center text-white rounded-[50%] hover:bg-zinc-600 cursor-pointer transition duration-200"
-              >
-                {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-              </button>
+              onClick={handlePlayPause}
+              className="block mx-auto p-4 bg-zinc-800 w-12 h-12 flex justify-center items-center text-white rounded-[50%] hover:bg-zinc-600 cursor-pointer transition duration-200"
+            >
+              {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+            </button>
           </div>
 
         </div>

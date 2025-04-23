@@ -350,7 +350,7 @@ const SheetNavigator = ({ receivedData }) => {
               <div
                 className="mb-6 p-4 rounded-sm bg-primary"
               >
-                <h2 className="text-lg font-semibold text-white mb-2">
+                <h2 className="text-lg font-semibold text-white mb-2 border-b-2 border-zinc-600 pb-2">
                   Selected JSON Data
                 </h2>
                 {selectedData ? (
@@ -482,8 +482,11 @@ const SheetNavigator = ({ receivedData }) => {
             <option value="classical_piano">Classical Piano</option>
             <option value="upright_piano">Upright Piano</option>
             <option value="auditorium_piano">Auditorium Piano</option>
+            <option value="jazz_piano">Jazz Piano</option>
             <option value="organ">Organ</option>
             <option value="violin">Violin</option>
+            <option value="harp">Harp</option>
+            <option value="classical_guitar">Classical Guitar</option>
           </select>
 
           <button
@@ -494,9 +497,9 @@ const SheetNavigator = ({ receivedData }) => {
           </button>
         </div>
         <h1 className="mt-10 text-2xl font-bold text-white mb-6">Generation Progress</h1>
-        <div className='h-[305px] w-full p-6 rounded-lg shadow-lg bg-secondary'>
+        <div className='w-full p-6 rounded-lg shadow-lg bg-secondary'>
           {generationProgress.length > 0 ? (
-            <div className="overflow-y-auto h-[250px] px-4 py-3" ref={generationProgressRef}>
+            <div className="overflow-y-auto h-[270px] px-4 py-3" ref={generationProgressRef}>
               {generationProgress.map((progress, index) => (
                 <div key={index} className="text-zinc-300 mb-2">
                   {progress["message"].includes("Page") ? (

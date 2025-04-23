@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef, useContext } from 'react'
 import { ConvertToSheetContext } from '../../context/ConvertToSheet';
 import { AudioContext } from '../../context/Audio';
+import NavBar from '../../components/NavBar';
+import Footer from '../../components/Footer';
 
 import SheetNavigator from './components/SheetNavigator';
 import AudioPlayer from './components/AudioPlayer';
@@ -12,6 +14,10 @@ const ConvertToSheetLayout = () => {
     const jsonData = useContext(AudioContext).jsonData;
 
     const [musicSheetData, setMusicSheetData] = useState([]);
+
+    useEffect(() => {
+        document.documentElement.scrollTop = 0;
+    }, []);
 
     useEffect(() => {
         async function fetchMusicSheetData() {
@@ -43,20 +49,20 @@ const ConvertToSheetLayout = () => {
         console.log("JSON Data:", jsonData);
     }, [jsonData]);
 
-    return (
-        <div className="p-4 h-screen overflow-auto">
-            {rawData ? (
+    return rawData ? (
+        <>
+            <NavBar />
+            <div className="p-4 mt-20">
                 <div className="grid grid-cols-1 gap-4 mb-4">
                     <SheetNavigator receivedData={musicSheetData} />
-                    {audioUrl && <AudioPlayer audioUrl={audioUrl} jsonData={jsonData} />}
+                    {audioUrl && <AudioPlayer audioUrl={audioUrl} jsonData={jsonData}/>}
                 </div>
-            ) : (
-                <NotFound />
-            )
-            }
-
-        </div>
-    )
+            </div>
+            <Footer />
+        </>
+        ) : (
+            <NotFound />
+        )
 }
 
 export default ConvertToSheetLayout

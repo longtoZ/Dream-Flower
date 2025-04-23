@@ -77,7 +77,7 @@ const wordArrays = [
 
 const NotFound = () => {
     return (
-        <div className="relative flex flex-col items-center justify-center h-full overflow-hidden cursor-default">
+        <div className="relative flex flex-col items-center justify-center h-full overflow-hidden cursor-default" style={{ height: '100vh'}}>
         {/* Background Typography */}
         <div className="absolute inset-0 z-0 opacity-30">
             <div className="flex flex-col h-full">

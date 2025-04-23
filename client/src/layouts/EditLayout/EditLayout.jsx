@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
+import ReactDOM from 'react-dom/client';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { TIME_CLASS_NAMES, CLASS_NAMES, CLASS_COLORS, CANVAS_MODE, BOX_ZONE } from '../../config/constants';
 
@@ -10,6 +11,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import ContentCutIcon from '@mui/icons-material/ContentCut';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+
+import { ToastContainer, toast } from 'react-toastify';
 
 const EditLayout = () => {
 	const navigate = useNavigate();
@@ -57,6 +60,28 @@ const EditLayout = () => {
 	const [isDialogOpen, setDialogOpen] = useState(false);
 	const [cutPosition, setCutPosition] = useState({x: 0, y: 0});
 
+	const mountToast = () => {
+		const container = document.getElementById("canvas-container");
+
+		if (container) {
+			const toastRoot = document.createElement("div");
+			toastRoot.id = "toast-root";
+			document.body.appendChild(toastRoot);
+
+			const root = ReactDOM.createRoot(toastRoot);
+			root.render(
+				<ToastContainer
+					position='bottom-right'
+					autoClose={2000}
+					hideProgressBar={false}
+					closeOnClick={true}
+					pauseOnHover={false}
+					toastStyle={{ backgroundColor: "#30323b", color: "white" }}
+				/>
+			)
+		}
+	}
+
 	// Draw the image on the canvas
 	const drawImage = () => {
 		const canvas = canvasRef.current;
@@ -69,9 +94,12 @@ const EditLayout = () => {
 
 		// Adjust the starting position
 		ctx.translate(startX, startY);
+		console.log("Start position", startX, startY)
 
 		// Draw the image
 		ctx.drawImage(image, 0, 0, image.width * scale, image.height * scale);
+
+		console.log("Boxes", boxes)
 
 		// Draw the boxes
 		boxes.forEach((symbol, index) => {
@@ -105,10 +133,10 @@ const EditLayout = () => {
 
 		// Set the page number and total pages
 		if (prevCanvasData) {
-			setPrevPage({page: prevCanvasData.page, zone: prevCanvasData.zone});
+			setPrevPage(() => ({page: prevCanvasData.page, zone: prevCanvasData.zone}));
 		}
 		if (nextCanvasData) {
-			setNextPage({page: nextCanvasData.page, zone: nextCanvasData.zone});
+			setNextPage(() => ({page: nextCanvasData.page, zone: nextCanvasData.zone}));
 		}
 
 		const canvas = canvasRef.current;
@@ -132,7 +160,9 @@ const EditLayout = () => {
 		setStaffLines(() => canvasData.staff_lines);
 
         image.onload = () => {
+			console.log("Image loaded", image.width, image.height);
 			drawImage();
+			mountToast();
         };
 
     }, []);
@@ -786,6 +816,9 @@ const EditLayout = () => {
 		const updatedData = retrievedData.filter((image) => image.page !== page || image.zone !== zone);
 
 		localStorage.setItem('images', JSON.stringify(updatedData));
+
+		toast.success("Deleted successfully");
+
 		navigate(-1);
 	}
 
@@ -794,6 +827,8 @@ const EditLayout = () => {
 		const canvasData = retrievedData.find((image) => image.page === page && image.zone === zone);
 
 		setBoxes(canvasData.boxes);
+
+		toast.success("Reset successfully");
 	}
 
 	const handleSave = () => {
@@ -810,6 +845,8 @@ const EditLayout = () => {
 		})
 
 		localStorage.setItem('images', JSON.stringify(updatedData));
+
+		toast.success("Saved successfully");
 	}
 
 	const handleDialogConfirm = () => {
@@ -838,7 +875,9 @@ const EditLayout = () => {
 	};
 
 	return (
-  		<div className='flex h-[100vh] overflow-hidden bg-primary'>
+		<>
+  		<div className='flex h-[100vh] overflow-hidden bg-primary' id='canvas-container'>
+			{/* <ToastContainer /> */}
 			<div className='relative w-[16%] bg-secondary border-r-2 border-zinc-600 border-solid'>
 				<div className='p-2 absolute flex flex-col justify-center items-center top-0 left-0 w-full h-full bg-[rgba(0,0,0,0.25)] z-10 backdrop-blur-xs' ref={noSelectionRef}>
 					<h1 className='text-lg'>No box selected</h1>
@@ -931,9 +970,12 @@ const EditLayout = () => {
 
 				<ConfirmDialog headMessage={dialogHeadMessage} subMessage={dialogSubMessage}
 				isOpen={isDialogOpen} setIsOpen={setDialogOpen} onConfirm={handleDialogConfirm} onCancel={handleDialogCancel} />
-			</div>
 
+			</div>
+			
 		</div>
+		</>
+
   	)
 }
 

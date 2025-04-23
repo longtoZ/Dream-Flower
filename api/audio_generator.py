@@ -1,5 +1,7 @@
 from pydub import AudioSegment
 from pydub.effects import low_pass_filter, high_pass_filter
+import random
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
@@ -21,6 +23,7 @@ CHEKPOINTS = {
 }
 
 USED_NOTES = {}
+USED_NOTES_LOCK = threading.Lock()
 
 FOLDER_PATH = ["sounds_modify/", ""]
 
@@ -33,6 +36,7 @@ def generate_audio(zone, zone_name, measure_playtime, note_playtime):
     original_length = sum([measure_playtime * measure["measure_duration"] for measure in zone])
     chord_delay = 50 if zone_name == "treble" else 100  # Reduced for crisper sound
     final_audio = AudioSegment.silent(duration=int(original_length * 1.25))
+
     next_position = 0
 
     for measure_idx, measure in enumerate(zone):
@@ -45,18 +49,31 @@ def generate_audio(zone, zone_name, measure_playtime, note_playtime):
                 num_notes = len(symbol["notes"])
                 notes = []
                 for i, note in enumerate(symbol["notes"]):
-                    if note not in USED_NOTES:
-                        USED_NOTES[note] = AudioSegment.from_mp3(f"{''.join(FOLDER_PATH)}{note}.mp3")
-                    # Lower gain more aggressively and pan notes slightly
+                    # Load note sound if not already loaded
+                    with USED_NOTES_LOCK:
+                        if note not in USED_NOTES:
+                            note_audio = AudioSegment.from_mp3(f"{''.join(FOLDER_PATH)}{note}.mp3")
+
+                            if "violin" in FOLDER_PATH[1]:
+                                if zone_name == "treble":
+                                    note_audio = note_audio.apply_gain(-10)
+                            elif "jazz" in FOLDER_PATH[1] or "upright_piano" in FOLDER_PATH[1]:
+                                # Notes' volumne of these piano are usually higher than others, so lower them
+                                note_audio = note_audio.apply_gain(-10)
+                            
+                            USED_NOTES[note] = note_audio
+
+                    # Lower gain more aggressively and pan slightly
                     note_audio = USED_NOTES[note].apply_gain(-4 * (num_notes - 1))
-                    pan_value = 0.2 * (i % 2 * 2 - 1)  # Alternate left (-0.2) and right (0.2)
+
+                    pan_value = random.uniform(-0.15, 0.15)  # Alternate panning for stereo effect
                     note_audio = note_audio.pan(pan_value)
                     notes.append(note_audio)
 
                 # Create chord with slight time offsets to reduce phase interference
                 chord = notes[0]
                 for i, note in enumerate(notes[1:], 1):
-                    chord = chord.overlay(note, position=5 * i)  # 5ms offset per note
+                    chord = chord.overlay(note, position=random.uniform(5, 25)) # Random offset for each note
 
                 # Set duration
                 duration = 0
@@ -71,8 +88,12 @@ def generate_audio(zone, zone_name, measure_playtime, note_playtime):
                     else:
                         duration += note_playtime[symbol["flag_type"]] / 2
 
-                # Trim chord to 1.5x duration for less overlap
-                chord = chord[:int(duration * 1.5)]
+                # Trim chord to 1.5x duration for less overlap (if possible)
+                note_duration = duration * 1.5
+                if note_duration > len(chord):
+                    note_duration = len(chord)
+
+                chord = chord[:int(note_duration)]
 
                 # Apply lighter fade for crisper attacks
                 chord = chord.fade_in(50).fade_out(chord_delay)
@@ -86,7 +107,8 @@ def generate_audio(zone, zone_name, measure_playtime, note_playtime):
         if len(measure_audio) > int(actual_measure_playtime * 1.25):
             measure_audio = measure_audio[:int(actual_measure_playtime * 1.25)]
 
-        measure_audio = measure_audio.fade_in(10).fade_out(int(actual_measure_playtime * 0.25))
+        fade_out_duration = int(actual_measure_playtime * 0.25)
+        measure_audio = measure_audio.fade_in(10).fade_out(max(fade_out_duration, 10))
         final_audio = final_audio.overlay(measure_audio, position=next_position)
         next_position += actual_measure_playtime
 
@@ -99,8 +121,10 @@ def process_zone(data, measure_playtime, note_playtime):
     bass_audio, _ = generate_audio(data["bass_zone"], "bass", measure_playtime, note_playtime)
 
     # Adjust volume with headroom
-    treble_audio = treble_audio.apply_gain(TARGET_DBFS["treble"] - treble_audio.dBFS)
-    bass_audio = bass_audio.apply_gain(TARGET_DBFS["bass"] - bass_audio.dBFS)
+    if treble_audio.dBFS > TARGET_DBFS["treble"]:
+        treble_audio = treble_audio.apply_gain(TARGET_DBFS["treble"] - treble_audio.dBFS)
+    if bass_audio.dBFS > TARGET_DBFS["bass"]:
+        bass_audio = bass_audio.apply_gain(TARGET_DBFS["bass"] - bass_audio.dBFS)
 
     mix_audio = treble_audio.overlay(bass_audio)
 
@@ -160,6 +184,14 @@ def combine_audio(socket, music_sheet, measure_playtime, audio_theme):
         FOLDER_PATH[1] = "classical_piano/"
     elif audio_theme == "auditorium_piano":
         FOLDER_PATH[1] = "auditorium_piano/"
+    elif audio_theme == "harp":
+        FOLDER_PATH[1] = "harp/"
+        TARGET_DBFS["bass"] = -25  # Lowered for harp's delicate sound
+    elif audio_theme == "classical_guitar":
+        FOLDER_PATH[1] = "classical_guitar/"
+        TARGET_DBFS["bass"] = -25  # Lowered for classical guitar's bright sound
+    elif audio_theme == "jazz_piano":
+        FOLDER_PATH[1] = "jazz_piano/"
 
     SOCKET["socket_io"].emit("status_update", {"message": f"Select audio theme: {audio_theme}"}, namespace="/audio", to=SOCKET["socket_id"])
 
@@ -182,15 +214,16 @@ def combine_audio(socket, music_sheet, measure_playtime, audio_theme):
 
         last_idx += mix_audio["length"]
 
-    if audio_theme == "violin":
-        final_audio = final_audio.low_pass_filter(3000).high_pass_filter(200)
-
     SOCKET["socket_io"].emit("status_update", {"message": "Setting checkpoints for measures..."}, namespace="/audio", to=SOCKET["socket_id"])
     set_checkpoints(music_sheet, measure_playtime)
     SOCKET["socket_io"].emit("status_update", {"message": "Audio generation is completed! Exporting to file..."}, namespace="/audio", to=SOCKET["socket_id"])
 
-    filename = str(uuid4())
-    final_audio.export(f"output/{filename}.mp3", format="mp3", bitrate="192k")
+    # Clear USED_NOTES to free up memory
+    with USED_NOTES_LOCK:
+        USED_NOTES.clear()
+
+    filename = str(uuid4())    
+    final_audio.export(f"output/{filename}.mp3", format="mp3", bitrate="320k")
     SOCKET["socket_io"].emit("status_update", {"message": "Audio file is ready!"}, namespace="/audio", to=SOCKET["socket_id"])
 
     return f"output/{filename}.mp3", CHEKPOINTS["checkpoints"]
