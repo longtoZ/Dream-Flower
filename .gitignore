@@ -1,6 +1,5 @@
-*.jpg
-*.png
-img/
+model_training/**/*.png
+model_training/**/*.jpg
 res/
 .ipynb_checkpoints
 .env
