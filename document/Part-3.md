@@ -23,9 +23,9 @@ Quá trình chuyển đổi dữ liệu từ dạng thông số kỹ thuật san
 ### 3.1.2.1. Tạo dòng kẻ khuông nhạc
 Bước đầu tiên là tạo các dòng kẻ khuông nhạc cho cả khoá Sol và khoá Fa, bao gồm các dòng kẻ chính và các dòng kẻ phụ để mở rộng phạm vi cao độ.
 
-- Khoá Sol: Được tạo ra từ 5 dòng kẻ chính (E4, G4, B4, D5, F5), 6 dòng phụ phía trên (A5, C6, E6, G6, B6, D7) và 3 dòng phụ phía dưới (F3, A3, C4). Khoảng cách giữa các dòng k3 được xác định bởi `line_space` (đơn vị là pixel).
+- **Khoá Sol:** Được tạo ra từ 5 dòng kẻ chính (E4, G4, B4, D5, F5), 6 dòng phụ phía trên (A5, C6, E6, G6, B6, D7) và 3 dòng phụ phía dưới (F3, A3, C4). Khoảng cách giữa các dòng k3 được xác định bởi `line_space` (đơn vị là pixel).
 
-- Khoá Fa: Được tạo ra từ 5 dòng kẻ chính (A3, F3, D3, B2, G2), 3 dòng phụ phía trên (G4, E4, C4), và 6 dòng phụ phía dưới (E2, C2, A1, F1, D1, B0).
+- **Khoá Fa:** Được tạo ra từ 5 dòng kẻ chính (A3, F3, D3, B2, G2), 3 dòng phụ phía trên (G4, E4, C4), và 6 dòng phụ phía dưới (E2, C2, A1, F1, D1, B0).
 
 Việc mở rộng này đảm bảo rằng chương trình phát hiện đầy đủ các nốt nhạc trong ảnh, bao gồm cả các nốt nhạc cao và thấp hơn so với khuông nhạc chính. Tuy nhiên, khoảng mở rộng này chưa đáp ứng được tất cả các cao đồ từ `A0` đến `C8`, mà chỉ dừng lại ở `D7` cho khoá Sol và `B0` cho khoá Fa.
 
@@ -175,19 +175,19 @@ SCALE = {
 
     Nếu nốt nhạc đi liền với đuôi nốt (`flag`) thì trường độ của nó sẽ được xác định dựa trên kiểu đuôi nốt đó. Các kiểu đuôi nốt đi liền với đầu nốt đen được hỗ trợ bao gồm:
 
-        - **Đuôi nốt đơn**: Có trường độ là `1/8` (eighth note).
+    - **Đuôi nốt đơn**: Có trường độ là `1/8` (eighth note).
 
-        - **Đuôi nốt đôi**: Có trường độ là `1/16` (sixteenth note).
+    - **Đuôi nốt đôi**: Có trường độ là `1/16` (sixteenth note).
 
-        - **Đuôi nốt ba**: Có trường độ là `1/32` (thirty-second note).
+    - **Đuôi nốt ba**: Có trường độ là `1/32` (thirty-second note).
 
 2. **Xử lí dấu nối**
     Nếu nốt nhạc đi liền với dấu nối (`beam`) thì trường độ của nó sẽ được xác định dựa trên kiểu dấu nối đó. Vì dấu nối gồm phần đầu và phần cuối, nên ta phải xử lí chính xác cả hai phần này nếu không muốn có sự sai lệch trong tổng trường độ của ô nhịp. Các bước đễ xử lý như sau:
 
     Đối với mỗi dấu nối, ta sẽ dùng 2 biến là `start_available` và `end_available` để xác định xem vị trí đầu và cuối của nó còn trống hay không (tức là chưa có nốt nhạc nào được xử lí tại vị trí đó). Tiếp theo, ta sẽ dùng 1 biến `turned_side` để xác định xem dấu nối này có bị lật ngược hay không (hoặc có thể coi là đầu nốt quay về bên trái hay bên phải). Nếu `turned_side` là `True`, thì đầu nốt sẽ quay về bên trái, ngược lại nếu là `False` thì đầu nốt sẽ quay về bên phải.
 
-        ![Turned side](images/part3/turned-side.png)
-        *Đầu nốt quay về bên trái và phải*
+    ![Turned side](images/part3/turned-side.png)
+    *Đầu nốt quay về bên trái và phải*
     
     Trong trường hợp có các dấu nối liền nhau, chúng sẽ có những ảnh hưởng với nhau. Ví dụ, `end_available` của dấu nối này sẽ là `start_available` của dấu nối tiếp theo; hay `turned_side` trong một cụm dấu nối sẽ là giống nhau như hình trên.
 
@@ -269,7 +269,7 @@ Các dấu lặng được thêm vào vị trí thích hợp trong `sheet` dựa
 
 ### 3.1.2.7. Kiểm tra trường độ ô nhịp
 
-Dựa trên toạ độ các vạch nhịp, các kí hiệu trong một ô nhịp sẽ được gom nhóm lại với nhau để kiểm tra trường độ của ô nhịp. Để kiểm tra, ta cần 2 biến là `measure_duration` là tổng trường độ thực tế dựa trên các nốt nhạc và dấu lặng trong ô nhịp, và `measure_playtime` là tổng trường độ lý thuyết của ô nhịp. Thông thường, ta sẽ cho `measure_playtime = 1 * TIME_COEFF`, với `TIME_COEFF` là hệ số thời gian của ô nhịp, được xác định dựa trên kí hiệu nhịp ở đầu khuông nhạc. 
+Dựa trên toạ độ các vạch nhịp, các kí hiệu trong một ô nhịp sẽ được gom nhóm lại với nhau để kiểm tra trường độ của ô nhịp. Để kiểm tra, ta cần 2 biến là `measure_duration` là **tổng trường độ thực tế** của các nốt nhạc và dấu lặng trong ô nhịp, và `measure_playtime` là tổng trường độ lý thuyết của ô nhịp. Thông thường, ta sẽ cho `measure_playtime = 1 * TIME_COEFF`, với `TIME_COEFF` là hệ số thời gian của ô nhịp, được xác định dựa trên kí hiệu nhịp ở đầu khuông nhạc. 
 
 Các kí hiệu nhịp được hỗ trợ bao gồm:
 ```python
@@ -293,6 +293,8 @@ note_playtime = {
     "thirty_second": 0.03125 * measure_playtime,
 }
 ```
+
+> Lưu ý: Các nốt nhạc có dấu chấm dôi (dotted note) có trường độ bằng trường độ của nốt nhạc đó cộng với một nửa trường độ của nó. Ví dụ, nốt nhạc `quarter` có trường độ là `0.25 * measure_playtime`, thì nốt nhạc `dotted quarter` sẽ có trường độ là `0.25 * measure_playtime + 0.125 * measure_playtime = 0.375 * measure_playtime`.
 
 Trong một số bản nhạc, đôi khi có sự xuất hiện của nhiều hơn 1 kí hiệu nhịp (tương tự như trường hợp có nhiều hơn 1 khoá nhạc). Khi này, ta sẽ phải xử lí tương tự như trường hợp có nhiều hơn 1 khoá nhạc bằng các cập nhật `TIME_COEFF` dựa trên `TIME_SIGNATURE_WEIGHT`để tính `measure_playtime`. Hình ảnh dưới đây là một ví dụ cho trường hợp này:
 
@@ -370,3 +372,192 @@ Cuối cùng, sau khi đã xử lí xong tất cả các ô nhịp trong bản n
 ```
 
 Hệ thống chuyển đổi dữ liệu JSON này sang định dạng âm thanh sẽ dùng các audio của nốt nhạc được lưu trữ sẵn và kết hợp chúng lại với các khoảng thời gian tương ứng để tạo thành bản nhạc hoàn chỉnh.
+
+## 3.2. Xây dựng đầu ra âm thanh của bản nhạc
+### 3.2.1. Tổng quan
+
+Việc xây dựng đầu ra âm thanh của bản nhạc là bước cuối cùng trong quy trình chuyển đổi từ ảnh sang âm thanh. Sau khi đã chuyển đổi dữ liệu từ dạng thông số kỹ thuật sang dạng nhạc lý, ta sẽ tiến hành tạo ra âm thanh tương ứng với các ký hiệu âm nhạc. Quá trình này được thực hiện thông qua các bước sau:
+
+1. **Lựa chọn âm thanh của nhạc cụ**: Chọn âm thanh của nhạc cụ mà ta muốn sử dụng để phát bản nhạc theo lựa chọn của người dùng. Các nhạc cụ được hỗ trợ bao gồm piano, guitar, violin, v.v. Nhưng mặc định sẽ là `classical_piano`.
+
+2. **Kết hợp nốt nhạc và quãng nghỉ**: Dựa trên các ký hiệu âm nhạc trong bản nhạc, ta sẽ kết hợp các nốt nhạc và quãng nghỉ lại với nhau để tạo thành âm thanh hoàn chỉnh. Các nốt nhạc sẽ được phát theo thứ tự đúng với dữ liệu đầu vào. Quá trình này bao gồm các thao tác xử lí một số hiệu ứng làm hư âm thanh như rè (buzzing), có tiếng nổ lách tách (crackling), chói tai (distortion), v.v.
+
+3. **Kết hợp khuông nhạc Treble và Bass**: Chồng 2 khuông nhạc Treble và Bass lại với nhau để tạo thành một bản nhạc hoàn chỉnh. Quá trình này cũng có các thao tác giới hạn mức âm lượng của khuông nhạc và tổng thể bản nhạc để tránh việc âm thanh bị chói.
+
+4. **Xuất âm thanh**: Cuối cùng, ta sẽ xuất âm thanh đã tạo ra thành một file âm thanh với định dạng MP3 và trả về cho người dùng.
+
+### 3.2.2. Chi tiết
+### 3.2.2.1. Lựa chọn âm thanh của nhạc cụ
+
+Mỗi nhạc cụ có một âm thanh riêng biệt và chúng mang lại những cảm xúc khác nhau cho người nghe. Do đó, việc lựa chọn âm thanh của nhạc cụ là rất quan trọng trong quá trình tạo ra âm thanh của bản nhạc. Hệ thống sẽ cung cấp cho người dùng một danh sách các nhạc cụ có sẵn và cho phép họ chọn nhạc cụ mà họ muốn sử dụng. Các nhạc cụ được hỗ trợ bao gồm:
+
+- **Classical Piano**: Âm thanh của đàn piano cổ điển, rất phổ biến trong âm nhạc cổ điển và hiện đại.
+
+- **Auditorium Piano**: Âm thanh của đàn piano trong một không gian lớn, tạo ra âm thanh vang vọng và mạnh mẽ.
+
+- **Upright Piano**: Âm thanh của đàn piano đứng, thường được sử dụng trong các bản nhạc nhẹ nhàng và tình cảm.
+
+- **Jazz Piano**: Âm thanh của đàn piano jazz, mang lại cảm giác ấm áp với những âm thanh ngọt ngào và du dương.
+
+- **Organ**: Âm thanh của đàn organ, thường được sử dụng trong các bản nhạc rock và pop.
+
+- **Classical Guitar**: Âm thanh của đàn guitar cổ điển, rất phổ biến trong âm nhạc dân gian và cổ điển.
+
+- **Harp**: Âm thanh của đàn hạc, mang lại cảm giác nhẹ nhàng và thanh thoát.
+
+- **Violin**: Âm thanh của đàn violin, thường được sử dụng trong các bản nhạc cổ điển và hiện đại.
+
+Với mỗi nhạc cụ, hệ thống sẽ lưu trữ 88 âm thanh trải dài từ `A0` đến `C8` (tương ứng với 88 phím đàn piano) trong một thư mục riêng biệt. Mỗi âm thanh đều có trường độ phù hợp để đáp ứng đầy đủ các nốt trong bản nhạc. Tuy nhiên, đối với một số nhạc cụ như violin, guitar, v.v. thì ta cần giảm mức âm thanh của dải tần số thấp (bass) xuống để làm nổi bật hơn dải tần số cao (treble), vốn là đặc trưng của các nhạc cụ này.
+
+Trong hệ thống này, ta sẽ sử dụng thư viện `pydub` để xử lý âm thanh. Thư viện này cho phép ta dễ dàng kết hợp các âm thanh lại với nhau và xuất chúng thành file âm thanh với định dạng MP3. Để giảm thời gian xử lý, ta sẽ sử dụng `ThreadPoolExecutor` để xử lí song song đầu ra của các khuông nhạc và một dictionary `USED_NOTES` được sử dụng chung giữa các `thread` để lưu trữ những âm thanh đã được tải từ file mp3, tránh việc tải lại nhiều lần cùng một âm thanh. 
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+# Xử lí song song các khuông nhạc
+with ThreadPoolExecutor() as executor:
+    results = list(executor.map(process_zone, music_sheet, [measure_playtime] * len(music_sheet), [note_playtime] * len(music_sheet)))
+```
+
+```python
+import threading
+from pydub import AudioSegment
+
+# Shared dictionary
+USED_NOTES = {}
+USED_NOTES_LOCK = threading.Lock()
+
+with USED_NOTES_LOCK:
+    if note not in USED_NOTES:
+        USED_NOTES[note] = AudioSegment.from_mp3(f"{instrument_path}/{note}.mp3")
+```
+
+### 3.2.2.2. Kết hợp nốt nhạc và quãng nghỉ
+
+Thời gian thể hiện của mỗi ô nhịp được xác định bằng `measure_playtime`, tương ứng với tổng thời gian lý thuyết của ô nhịp. Tuy nhiên, nếu thời gian chỉ đúng bằng `measure_playtime`, thì âm thanh ở cuối ô nhịp sẽ bị ngắt quãng và chuyển qua ô nhịp tiếp theo ngay lập tức. Điều này sẽ làm cho âm thanh nghe không được tự nhiên và không có độ ngân vang (sustain). Do đó, ta sẽ thêm một khoảng duy trì âm, bằng `0.25` lần thời gian ô nhịp, vào cuối ô nhịp hiện tại và chồng ô nhịp tiếp theo lên ngay sau `measure_playtime` của ô nhịp hiện tại.
+
+![Measure sustain](images/part3/measure-sustain.png)
+*Ô nhịp không được duy trì âm thanh và ô nhịp được duy trì âm thanh*
+
+Trước khi thêm âm thanh của các nốt vào ô nhịp, ta sẽ tạo ra một ô nhịp trống với thời gian bằng `measure_playtime * 1.25`. Sau đó, ta duyệt qua các ký hiệu trong ô nhịp và thêm vào ô nhịp trống theo các bước sau:
+
+1. **Xử lí độ lớn của âm thanh gốc**:
+
+    Nếu ký hiệu là một hoặc nhiều nốt nhạc, ta sẽ tải âm thanh của nốt nhạc từ file có định dạng `{instrument}/{note}.mp3` và thêm nó vào `USED_NOTES` để tránh việc tải lại nhiều lần cùng một âm thanh. Sau này khí phát âm thanh, ta sẽ sử dụng âm thanh đã được tải từ `USED_NOTES`.
+
+    Tiếp theo, ta sẽ chồng âm thanh của các nốt nhạc này lên nhau để tạo ra một hợp âm (chord). Trước khi làm điều này, ta phải đảm bảo rằng âm lượng của các âm thanh này không được phép vượt quá ngưỡng cho phép, để tránh việc âm thanh quá lớn gây méo (distortion). Do đó ứng với mỗi nốt trong hợp âm, ta sẽ sử dụng `apply_gain` để điều chỉnh âm lượng của nó về mức tối ưu nhất dựa trên số lượng nốt nhạc trong hợp âm.
+
+    ```python
+    note_audio = USED_NOTES[note].apply_gain(-4 * (num_notes - 1))
+    ```
+
+    Để làm rõ hơn về việc độ lớn của hợp âm sẽ giảm đi bao nhiêu, ta sẽ dùng công thức **Mức cường độ âm**:
+
+    ```math
+    L = 10 \cdot log_{10} \left( \frac{I}{I_0} \right) \text{ (dB)}
+    ```
+
+    Trong đó:
+    - `L`: Mức cường độ âm (đơn vị là dB).
+    - `I`: Cường độ âm (đơn vị là W/m²).
+    - `I0`: Cường độ âm chuẩn (đơn vị là W/m²), thường được lấy là `10^-12 W/m²`.
+
+    Từ đó, ta có thể tính được
+
+    ```math
+    I_{i} = 10^{\frac{L_{i}}{10}} \cdot I_0 \text{ (W/m²)}
+    ```
+
+    Do đó, ta dễ dàng tính ra được tổng cường độ âm của các âm thanh có cùng mức cường độ âm là:
+
+    ```math
+    I_{total} = \sum_{i=1}^{n} I_{i} = n \cdot 10^{\frac{L_{i}}{10}} \cdot I_0 \text{ (W/m²)}
+    ```
+
+    Như vậy, ta có thể tính được mức cường độ âm của hợp âm là:
+
+    ```math
+    L_{total} = 10 \cdot log_{10} \left( \frac{I_{total}}{I_0} \right) = 10 \cdot log_{10} \left( n \cdot 10^{\frac{L_{i}}{10}} \right) = L_{i} + 10 \cdot log_{10}(n)
+    ```
+
+    Ví dụ, một hợp âm có 4 nốt nhạc và mỗi nốt được giảm đi `-4 * (4 - 1) = -12 dB`, thì mức cường độ âm của hợp âm sẽ giảm gần `6 db`:
+
+    ```math
+    L_{total} = L_{i} + 10 \cdot log_{10}(4) = (L_{i} - 12) + 10 \cdot log_{10}(4) = L_{i} - 12 + 6.0205 = L_{i} - 5.9795 \approx L_{i} - 6 (dB)
+    ```
+
+2. **Phân bố âm thanh stereo**:
+
+    Âm thanh stereo là âm thanh được phát ra từ hai kênh âm thanh khác nhau, tạo ra hiệu ứng không gian cho người nghe. Để tạo ra âm thanh stereo, ta sẽ phân bố các nốt nhạc trong hợp âm vào hai kênh trái và phải của âm thanh.
+
+    ```python
+    pan_value = random.uniform(-0.15, 0.15)
+    note_audio = note_audio.pan(pan_value)
+    ```
+
+    Trong đó, `pan_value` là giá trị phân bố âm thanh, có thể nằm trong khoảng từ `-1` đến `1`, với `-1` là âm thanh chỉ phát ra từ kênh trái và `1` là âm thanh chỉ phát ra từ kênh phải. Ta sẽ sử dụng hàm `random.uniform(-0.15, 0.15)` để tạo ra một giá trị ngẫu nhiên trong khoảng này, giúp ngăn chặn việc âm thanh bị lệch quá nhiều về một bên gây chói tai cho người nghe.
+
+3. **Xây dựng hợp âm**:
+
+    Sau khi đã xử lí độ lớn của âm thanh gốc và phân bố âm thanh stereo, ta sẽ tạo ra một hợp âm bằng cách chồng các nốt nhạc lại với nhau. Để làm điều này, ta sẽ sử dụng hàm `overlay` với các offset khác nhau trong khoảng từ `5ms` đến `25ms`. Điều này giúp tạo ra hiệu ứng âm thanh tự nhiên hơn, giống như khi người chơi ấn các nốt nhạc cùng một lúc nhưng không hoàn toàn đồng bộ với nhau.
+
+    ```python
+    chord = notes[0]
+    for i, note in enumerate(notes[1:], 1):
+        chord = chord.overlay(note, position=random.uniform(5, 25))
+    ```
+
+4. **Thiết lập trường độ cho hợp âm**:
+
+    Trước hết, ta sẽ tính toán trường độ lý thuyết của hợp âm bằng cách lấy trường độ của nốt nhạc đầu tiên trong hợp âm và xử lí các nốt có dấu chấm dôi (dotted note) bằng cách cộng thêm một nửa trường độ của nó.
+
+    ```python
+    note_type = symbol.flag_type if symbol.flag_type else symbol.head_type # Kiểu nốt nhạc (có đuôi nốt hay không có đuôi nốt)
+
+    chord_duration = note_playtime[note_type]
+
+    # Tăng trường độ cho nốt nhạc có dấu chấm dôi
+    if "dotted" in symbol.head_type:
+        chord_duration += note_playtime[note_type] / 2
+    ```
+
+    Tương tự như xây dựng ô nhịp, ta sẽ điều chỉnh trường độ cho hợp âm bằng cách thêm một khoảng duy trì âm vào cuối hợp âm. Khoảng duy trì âm này sẽ được tính bằng `chord_duration * 1.5` nếu có thể. Hơn nữa, ta áp dụng `fade_in` và `fade_out` bằng `50ms` để tạo ra hiệu ứng mờ dần cho âm thanh, giúp âm thanh nghe tự nhiên hơn. Cuối cùng, ta sẽ thêm hợp âm này vào ô nhịp trống đã tạo ở bước 1.
+
+    ```python
+    # Thêm khoảng duy trì âm vào cuối hợp âm
+    chord = chord[:int(chord_duration * 1.5)]
+
+    # Fade in và fade out
+    chord = chord.fade_in(50).fade_out(50)
+    ```
+
+    ![Chord sustain](images/part3/chord-sustain.png)
+    *Hợp âm không được duy trì âm thanh và hợp âm được duy trì âm thanh*
+
+5. **Thêm quãng nghỉ (nếu có)**:
+
+    Nếu ký hiệu là một quãng nghỉ, ta sẽ tạo ra một âm thanh trống với thời gian bằng trường độ của quãng nghỉ.
+    
+### 3.2.2.3. Kết hợp khuông nhạc Treble và Bass
+
+Sau khi đã xử lí xong tất cả ô nhịp của mỗi khuông nhạc, ta sẽ kết hợp 2 khuông nhạc Treble và Bass lại với nhau. Tuy nhiên, trước khi chồng 2 âm thanh này lên nhau, ta cần đảm bảo rằng mức âm lượng không vượt quá ngưỡng cho phép. Do đó, ta sẽ điều chỉnh mức âm lượng của `treble_audio` và `bass_audio` về mức âm tối ưu.
+
+```python
+treble_audio = treble_audio.apply_gain(TARGET_DBFS.treble - treble_audio.dBFS)
+bass_audio = bass_audio.apply_gain(TARGET_DBFS.bass - bass_audio.dBFS)
+```
+
+Để đảm bảo hơn nữa, ta sẽ kiểm soát mức âm lượng tối đa của âm thanh sau khi chồng 2 khuông nhạc lại với nhau bằng cách điều chỉnh `max_dBFS` của âm thanh tổng hợp. Nếu mức âm lượng vượt quá ngưỡng cho phép, ta sẽ giảm âm lượng của âm thanh tổng hợp về mức tối ưu.
+
+```python
+if mix_audio.max_dBFS > -0.1:
+    mix_audio = mix_audio.apply_gain(-mix_audio.max_dBFS - 0.5)
+```
+
+### 3.2.2.4. Xuất âm thanh
+
+Cuối cùng, ta sẽ xuất âm thanh đã tạo ra thành một file âm thanh với định dạng `mp3`, bitrate là `320kbps` và trả về cho người dùng. Tên của file sẽ được đặt dựa trên `uuid` của hệ thống nên sẽ không bị trùng lặp với các file âm thanh khác.
+
+```python
+final_audio.export(f"output/{str(uuid4())}.mp3", format="mp3", bitrate="320k")
+```
