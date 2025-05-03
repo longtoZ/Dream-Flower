@@ -1,7 +1,7 @@
-# Hệ thống nhận dạng bản nhạc quang học và xử lý âm thanh cho Piano - Optical Music Recognition and Audio Processing for Piano
+# Hệ thống Nhận diện bản nhạc quang học và Xử lý âm thanh cho Piano - Optical Music Recognition and Audio Processing for Piano
 
 # 1. Tổng quan các phần trong báo cáo
-## 1.1. Hệ thống nhận dạng bản nhạc quang học (OMR)
+## 1.1. Hệ thống nhận diện bản nhạc quang học (OMR)
 - Khái quát về OMR
 - Những thử thách trong OMR
 - Các công đoạn xây dựng hệ thống
@@ -19,5 +19,7 @@
 - WebSocket
 - Multi-threading
 - Các thư viện khác
+
+## 1.5. Tài liệu tham khảo
 
 # 2 Trình bày sản phẩm

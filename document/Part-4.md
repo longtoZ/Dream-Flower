@@ -26,7 +26,6 @@ Quy trình hoàn chỉnh khi người dùng tải lên file PDF được mô t�
 1. **Khởi tạo request upload:**
 
 - User chọn file PDF và nhấn nút "Upload File"
-
 - Client tạo FormData và gửi file lên endpoint `/api/upload` qua POST request
 
 2. **Xử lý file trên server:**
@@ -41,9 +40,7 @@ Server giữ kết nối này mở và bắt đầu xử lý PDF
 4. **Stream dữ liệu theo thời gian thực:**
 
 - Server xử lý PDF, tách thành các ảnh, phân tích từng vùng chứa ký hiệu âm nhạc
-
 - Mỗi khi xử lý xong một vùng, server gửi dữ liệu qua kết nối SSE với định dạng:
-
     ```json
     {
         "filename": filename,
@@ -58,23 +55,18 @@ Server giữ kết nối này mở và bắt đầu xử lý PDF
 5. **Client nhận và xử lý dữ liệu:**
 
 - Client nhận được sự kiện `onmessage` cho mỗi chunk dữ liệu gửi từ server
-
 - Dữ liệu được parse từ JSON và thêm vào state `images`
-
-- UI cập nhật để hiển thị hình ảnh và các box nhận dạng được
-
+- UI cập nhật để hiển thị hình ảnh và các box nhận diện được
 - Dữ liệu được lưu vào localStorage để sử dụng sau này
 
 6. **Kết thúc luồng SSE:**
 
 - Khi xử lý tất cả vùng trên các trang PDF, server gửi message "done"
-
 - Client nhận được thông báo này, đóng kết nối SSE và cập nhật trạng thái UI
 
 7. **Xử lý lỗi:**
 
 - Nếu có lỗi xảy ra, sự kiện onerror được kích hoạt
-
 - Client đóng kết nối và hiển thị thông báo lỗi
 
 ### Phía server
@@ -84,9 +76,7 @@ Quy trình xử lý file PDF và gửi dữ liệu qua SSE được thực hiệ
 1. **Nhận file PDF:**
 
 - Server nhận file PDF từ client qua endpoint `/api/upload`
-
 - Lưu file vào thư mục và tạo một cặp `(key, value)` với `session_id` là key và value là một đối tượng chứa thông tin về file PDF, bao gồm đường tên file, đường dẫn lưu trữ và trạng thái xử lý
-
     ```json
     {
         "filename": saved_filename,
@@ -98,7 +88,6 @@ Quy trình xử lý file PDF và gửi dữ liệu qua SSE được thực hiệ
 2. **Xác thực và lấy dữ liệu từ phiên:**
 
 - Khi client gửi yêu cầu đến endpoint `/api/stream/${sessionId}`, server xác thực `session_id`
-
 - Nếu hợp lệ, server lấy thông tin của file PDF cần được xử lý
 
 3. **Truyền dữ liệu theo thời gian thực:**
@@ -303,7 +292,7 @@ Một điểm nổi bật trong việc triển khai `ThreadPoolExecutor` là cá
 
 React JSON View là một thư viện React cho phép hiển thị và tương tác với dữ liệu JSON một cách dễ dàng và trực quan. Thư viện này cung cấp một giao diện người dùng đẹp mắt để xem cấu trúc của dữ liệu JSON, cho phép người dùng mở rộng/thu gọn các phần tử, sao chép dữ liệu và thậm chí chỉnh sửa trực tiếp trong giao diện.
 
-Trong hệ thống, React JSON View được sử dụng để hiển thị dữ liệu JSON của bản nhạc đã được xử lý. Người dùng có thể di chuyển qua các ô nhịp, khuông nhạc, trang khác nhau và xem các thông tin chi tiết về từng ký hiệu âm nhạc. Điều này giúp người dùng dễ dàng theo dõi và kiểm tra dữ liệu mà hệ thống đã nhận dạng được.
+Trong hệ thống, React JSON View được sử dụng để hiển thị dữ liệu JSON của bản nhạc đã được xử lý. Người dùng có thể di chuyển qua các ô nhịp, khuông nhạc, trang khác nhau và xem các thông tin chi tiết về từng ký hiệu âm nhạc. Điều này giúp người dùng dễ dàng theo dõi và kiểm tra dữ liệu mà hệ thống đã nhận diện được.
 
 ### 4.4.2. React Toastify
 

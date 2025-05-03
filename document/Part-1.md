@@ -1,19 +1,19 @@
-# 1. Hệ thống nhận dạng bản nhạc quang học (OMR)
+# 1. Hệ thống nhận diện bản nhạc quang học (OMR)
 ## 1.1. Khái quát về OMR
 
-Nhận dạng bản nhạc quang học (Optical Music Recognition - OMR) là một lĩnh vực nghiên cứu thuộc giao thoa giữa **thị giác máy tính** (computer vision), **xử lý ảnh** (image processing), **âm nhạc học** (musicology) và **xử lý dữ liệu** (data processing). Mục tiêu của OMR là tự động phân tích hình ảnh chứa các bản nhạc — có thể là bản in hoặc bản viết tay (báo cáo này chỉ thực hiện với bản in) — và chuyển đổi các ký hiệu âm nhạc thành định dạng kỹ thuật số có thể chỉnh sửa.
-Quá trình này không đơn giản chỉ là nhận dạng từng ký hiệu đơn lẻ, mà còn phải hiểu và tái hiện cấu trúc âm nhạc tổng thể của bản nhạc gốc, bao gồm nhịp điệu, cao độ, hợp âm và các giá trị nhịp.
+Nhận diện bản nhạc quang học (Optical Music Recognition - OMR) là một lĩnh vực nghiên cứu thuộc giao thoa giữa **thị giác máy tính** (computer vision), **xử lý ảnh** (image processing), **âm nhạc học** (musicology) và **xử lý dữ liệu** (data processing). Mục tiêu của OMR là tự động phân tích hình ảnh chứa các bản nhạc — có thể là bản in hoặc bản viết tay (báo cáo này chỉ thực hiện với bản in) — và chuyển đổi các ký hiệu âm nhạc thành định dạng kỹ thuật số có thể chỉnh sửa.
+Quá trình này không đơn giản chỉ là nhận diện từng ký hiệu đơn lẻ, mà còn phải hiểu và tái hiện cấu trúc âm nhạc tổng thể của bản nhạc gốc, bao gồm nhịp điệu, cao độ, hợp âm và các giá trị nhịp.
 
-Thông thường, một hệ thống OMR hoàn chỉnh bao gồm bốn giai đoạn chính:
+Thông thường, một hệ thống OMR hoàn chỉnh bao gồm ba giai đoạn chính:
 - **Xử lý ảnh (Image Processing)**: Ở giai đoạn này, hình ảnh bản nhạc được xử lý để cải thiện chất lượng và loại bỏ nhiễu. Các kỹ thuật như chuyển đổi ảnh về nhị phân, loại bỏ nhiễu, áp dụng các phép toán hình thái học (morphological operations), làm mờ Gauss thường được sử dụng.
 
-- **Phân đoạn và nhận dạng ký hiệu (Segmentation and Symbol Recognition)**: Sau khi xử lý ảnh, hệ thống sẽ chia bản nhạc thành các phần nhỏ hơn, thông thường là cặp khuông nhạc, và nhận diện các ký hiệu âm nhạc trong từng phần. Trong báo cáo này, ta sử dụng thuật toán YOLO (You Only Look Once) để nhận diện các ký hiệu âm nhạc.
+- **Phân đoạn và nhận diện ký hiệu (Segmentation and Symbol Recognition)**: Sau khi xử lý ảnh, hệ thống sẽ chia bản nhạc thành các phần nhỏ hơn, thông thường là cặp khuông nhạc, và nhận diện các ký hiệu âm nhạc trong từng phần. Trong báo cáo này, ta sử dụng thuật toán YOLO (You Only Look Once) để nhận diện các ký hiệu âm nhạc.
 
-- **Giải mã ngữ cảnh (Musical Reconstruction)**: Đây là bước tái tạo ý nghĩa âm nhạc từ các ký hiệu đã nhận dạng. Ví dụ, xác định vị trí cao độ từ vị trí đầu nốt nhạc trên khuông nhạc, xác định nhịp điệu từ các ký hiệu thời gian, và xác định các hợp âm từ các nốt nhạc được nhóm lại vớsẽ độ chính xác của từng giai đoạn. Tuy nhiên, trong thực tế, mỗi giai đoạn đều có những khó khăn và thách thức riêng mà ngay cả những hệ thống OMR tiên tiến nhất cũng không thể giải quyết hoàn toàn.
+- **Giải mã ngữ cảnh (Musical Reconstruction)**: Đây là bước tái tạo ý nghĩa âm nhạc từ các ký hiệu đã nhận diện. Ví dụ, xác định vị trí cao độ từ vị trí đầu nốt nhạc trên khuông nhạc, xác định nhịp điệu từ các ký hiệu thời gian, và xác định các hợp âm từ các nốt nhạc được nhóm lại của từng giai đoạn. Tuy nhiên, trong thực tế, mỗi giai đoạn đều có những khó khăn và thách thức riêng mà ngay cả những hệ thống OMR tiên tiến nhất cũng không thể giải quyết hoàn toàn.
 
 ## 1.2. Những thách thức trong OMR
 ### 1.2.1. Sự đa dạng và phức tạp của ký hiệu âm nhạc
-Khác với văn bản tự nhiên vốn có hệ thống chữ cái đơn giản và nhất quán, ký hiệu âm nhạc có một sự đa dạng cực kỳ phong phú về hình dạng, kích thước và cách biểu diễn. Bên cạnh các nốt nhạc cơ bản, bản nhạc còn chứa nhiều yếu tố phức tạp như dấu luyến, dấu nối, dấu chấm, các chỉ thị nhịp độ, biểu cảm, v.v.
+Khác với văn bản tự nhiên vốn có hệ thống chữ cái đơn giản và nhất quán, ký hiệu âm nhạc có một sự phong phú về hình dạng, kích thước và cách biểu diễn. Bên cạnh các nốt nhạc cơ bản, bản nhạc còn chứa nhiều yếu tố phức tạp như dấu luyến, dấu nối, dấu chấm, các chỉ thị nhịp độ, biểu cảm, v.v.
 
 Hơn nữa, nhiều ký hiệu có thể trông rất giống nhau về mặt hình học nhưng có ý nghĩa âm nhạc hoàn toàn khác biệt. Ví dụ, một dấu chấm đặt sau một nốt có ý nghĩa kéo dài trường độ, trong khi một dấu chấm đặt gần hoặc trên nốt có thể biểu diễn kỹ thuật staccato. Ngoài ra, trong một số bản nhạc, dấu nối (beam) có thể trải dài từ khuông nhạc trên xuống khuông nhạc dưới, trong khi trong các bản nhạc thông thường, dấu nối chỉ kéo dài giữa các nốt nhạc trên cùng một khuông nhạc.
 
@@ -41,32 +41,44 @@ Công đoạn đầu tiên trong xử lý ảnh là phân chia ảnh thành các
 
 - Đây là ảnh gốc, được chụp lấy từ một trang của bản nhạc. Ảnh này có độ phân giải cao và chứa nhiều ký hiệu âm nhạc khác nhau.
 
-    ![Original](images/part1/original.png)
+<figure style="text-align: center;">
+    <img src="images/part1/original.png" alt="Original" width="500"/>
+    <figcaption style="font-style: italic">Ảnh gốc</figcaption>
+</figure>
 
-- Ảnh được chuyển sang không gian màu xám, sau đó áp dụng bộ lọc Gaussian với kernel kích thước (5×5) nhằm làm giảm nhiễu cục bộ.
+- Ảnh được chuyển sang không gian màu xám, sau đó áp dụng **bộ lọc Gaussian** với kernel kích thước (5×5) nhằm làm giảm nhiễu cục bộ.
 
-- Ảnh mờ được nhị phân hóa ngược sử dụng phương pháp `Otsu` (kí hiệu trắng trên nền đen). Các vùng tối trong ảnh sẽ trở thành màu trắng (255), trong khi các vùng sáng sẽ trở thành màu đen (0), và không có kí hiệu nào nằm trong khoảng "màu xám" (khoảng giữa 0 và 255). Mục đích của bước này là làm nổi bật các ký hiệu âm nhạc trong ảnh.
+- Ảnh mờ được **nhị phân hóa** ngược sử dụng phương pháp `Otsu` (kí hiệu trắng trên nền đen). Các vùng tối trong ảnh sẽ trở thành màu trắng (255), trong khi các vùng sáng sẽ trở thành màu đen (0), và không có kí hiệu nào nằm trong khoảng "màu xám" (khoảng giữa 0 và 255). Mục đích của bước này là làm nổi bật các ký hiệu âm nhạc trong ảnh.
 
-    ![Binary](images/part1/thresh.png)
+<figure style="text-align: center;">
+    <img src="images/part1/thresh.png" alt="Binary" width="500"/>
+    <figcaption style="font-style: italic">Ảnh nhị phân</figcaption>
+</figure>
 
-- Phép toán giãn nở (dilation) được sử dụng với một ma trận nhị phân kích thước (40x10) chứa toàn giá trị 1. "Hình chữ nhật" này sẽ kết nối các thành phần nằm gần nhau và làm cho chúng liên kết với nhau thành một khối liên tục. Điều này giúp làm nổi bật các cặp khuông nhạc, thuận lợi cho việc tìm đường biên và tách bản nhạc thành các phần nhỏ hơn để nhận diện.
+- **Phép toán giãn nở** (dilation) được sử dụng với một ma trận nhị phân kích thước (40x10) (`cv2.MORPH_RECT`) chứa toàn giá trị 1. "Hình chữ nhật" này sẽ kết nối các thành phần nằm gần nhau và làm cho chúng liên kết với nhau thành một khối liên tục. Điều này giúp làm nổi bật các cặp khuông nhạc, thuận lợi cho việc tìm đường biên và tách bản nhạc thành các phần nhỏ hơn để nhận diện.
 
-    ![Dilation](images/part1/dilate.png)
+<figure style="text-align: center;">
+    <img src="images/part1/dilate.png" alt="Dilate" width="500"/>
+    <figcaption style="font-style: italic">Ảnh sau khi giãn nở</figcaption>
+</figure>
 
-- Từ ảnh nhị phân đã được xử lý, ta sử dụng phương pháp tìm đường biên (contour) để xác định các vùng chứa khuông nhạc. Với tham số `cv2.RETR_EXTERNAL`, chỉ trích xuất các đường biên ngoài cùng, bỏ qua các đường biên bên trong. Điều này giúp loại bỏ các chi tiết không cần thiết và chỉ giữ lại các khuôn nhạc chính. Ngoài ra, ta cũng sử dụng tham số `cv2.CHAIN_APPROX_SIMPLE` để giảm số lượng điểm trong đường biên, giúp tiết kiệm bộ nhớ và tăng tốc độ xử lý. Lưu ý, ta sẽ chỉ lấy các đường biên có độ dài bằng 80% so với chiều rộng của ảnh vì các khuông nhạc thường có chiều dài như vậy.
+- Từ ảnh nhị phân đã được xử lý, ta sử dụng **phương pháp tìm đường biên** (contour) để xác định các vùng chứa khuông nhạc. Với tham số `cv2.RETR_EXTERNAL`, chỉ trích xuất các đường biên ngoài cùng, bỏ qua các đường biên bên trong. Điều này giúp loại bỏ các chi tiết không cần thiết và chỉ giữ lại các khuôn nhạc chính. Ngoài ra, ta cũng sử dụng tham số `cv2.CHAIN_APPROX_SIMPLE` để giảm số lượng điểm trong đường biên, giúp tiết kiệm bộ nhớ và tăng tốc độ xử lý. Lưu ý, ta sẽ chỉ lấy các đường biên có độ dài bằng 80% so với chiều rộng của ảnh vì các khuông nhạc thường có chiều dài như vậy.
 
-    ![Contour](images/part1/contour.jpg)
+<figure style="text-align: center;">
+    <img src="images/part1/contour.jpg" alt="Contour" width="500"/>
+    <figcaption style="font-style: italic">Ảnh sau khi tìm đường biên</figcaption>
+</figure>
 
 ## 1.3.1.2. Trích xuất dòng kẻ khuông nhạc
 Ta sẽ thực hiện trich xuất các dòng kẻ khuông nhạc từ ảnh gốc. Các bước thực hiện như sau:
 
-- Vùng khuông nhạc được chuyển sang ảnh xám và sau đó nhị phân hóa với ngưỡng 210 (chủ yếu là các ký hiệu đủ lớn và sắc nét) kết hợp Otsu để làm nổi bật các đối tượng tối trên nền sáng.
+- Vùng khuông nhạc được chuyển sang ảnh xám và sau đó nhị phân hóa với ngưỡng **210** (chủ yếu là các ký hiệu đủ lớn và sắc nét) kết hợp Otsu để làm nổi bật các đối tượng tối trên nền sáng.
 
-- Một phần tử cấu trúc hình chữ nhật (với chiều dài khoảng 80% chiều rộng ảnh và chiều cao 1 pixel) cùng với phép co (erosion) và giãn (dilation) được sử dụng để làm nổi bật các đường kẻ khuông nhạc.
+- Một phần tử cấu trúc hình chữ nhật (với chiều dài khoảng 80% chiều rộng ảnh và chiều cao 1 pixel) cùng với **phép co** (erosion) và **phép giãn** (dilation) được sử dụng để làm nổi bật các đường kẻ khuông nhạc.
 
 - Các đường biên được tìm kiếm và sắp xếp theo thứ tự tọa độ đứng. Các hộp (bounding box) có chiều rộng nhỏ (dưới 80% chiều rộng ảnh) hoặc có độ dày lớn hơn 4 pixel sẽ bị loại bỏ để tránh nhầm lẫn với các yếu tố không phải đường khuông (ví dụ như thanh nối nhịp trong các nốt nhóm).
 
-- Các dòng kẻ khuông hợp lệ (theo các tiêu chí hình học) được lưu trữ dưới dạng danh sách các bounding box (tọa độ x, y, width, height). Dưới đây là một ví dụ về các dòng kẻ khuông nhạc được trích xuất từ một vùng khuông nhạc:
+- Các dòng kẻ khuông hợp lệ (theo các tiêu chí hình học) được lưu trữ dưới dạng danh sách các bounding box `(x, y, width, height)`. Dưới đây là một ví dụ về các dòng kẻ khuông nhạc được trích xuất từ một vùng khuông nhạc:
 
     ```python
     # 5 dòng kẻ của khuôn nhạc treble - khoá Sol (phía trên)
@@ -89,33 +101,45 @@ Sau khi đã lọc ra các dòng kẻ, ta tiến hành loại bỏ các dòng k�
 
 - Vùng khuông nhạc được chuyển sang ảnh xám và sau đó nhị phân hóa với ngưỡng 210 (chủ yếu là các ký hiệu đủ lớn và sắc nét) kết hợp Otsu để làm nổi bật các đối tượng tối trên nền sáng.
 
-- Ta sử dụng một ma trận có kích thước 1x4 (đường kẻ thường có độ rộng khoảng 4 pixel), ảnh được co lại (erosion) rồi giãn nở (dilation) theo chiều dọc để làm mờ hoặc loại bỏ các đường kẻ ngang mỏng (tức đường khuông).
+- Ta sử dụng một ma trận có kích thước (1x4) (đường kẻ thường có độ rộng khoảng 4 pixel), ảnh được co lại (erosion) rồi giãn nở (dilation) theo chiều dọc để làm mờ hoặc loại bỏ các đường kẻ ngang mỏng (tức đường khuông).
 
 - Do thao tác co có thể làm mất chi tiết của các nốt, ảnh được phục hồi bằng giãn nở sử dụng phần tử hình elip (2×2) nhằm khôi phục hình dạng các notehead và các chi tiết nhạc cụ. Thao tác này tuy giúp khôi phục các chi tiết bị mất, nhưng nó cũng làm cho các chi tiết này bị đôi chút biến dạng (mặc dù không đáng kể).
 
 - Cuối cùng, ảnh được đảo ngược lại về nền trắng - đối tượng đen, thuận tiện cho các bước phân tích sau này. Dưới đây là các vùng khuông nhạc đã được loại bỏ dòng kẻ:
 
-    ![Remove 0](images/part1/roi_0.jpg)
-    *Vùng 0*
+    <figure style="text-align: center;">
+        <img src="images/part1/roi_0.jpg" alt="Remove 0" width="500"/>
+        <figcaption style="font-style: italic">Vùng 0</figcaption>
+    </figure>
 
-    ![Remove 1](images/part1/roi_1.jpg)
-    *Vùng 1*
+    <figure style="text-align: center;">
+        <img src="images/part1/roi_1.jpg" alt="Remove 1" width="500"/>
+        <figcaption style="font-style: italic">Vùng 1</figcaption>
+    </figure>
 
-    ![Remove 2](images/part1/roi_2.jpg)
-    *Vùng 2*
+    <figure style="text-align: center;">
+        <img src="images/part1/roi_2.jpg" alt="Remove 2" width="500"/>
+        <figcaption style="font-style: italic">Vùng 2</figcaption>
+    </figure>
 
-    ![Remove 3](images/part1/roi_3.jpg)
-    *Vùng 3*
+    <figure style="text-align: center;">
+        <img src="images/part1/roi_3.jpg" alt="Remove 3" width="500"/>
+        <figcaption style="font-style: italic">Vùng 3</figcaption>
+    </figure>
 
-    ![Remove 4](images/part1/roi_4.jpg)
-    *Vùng 4*
+    <figure style="text-align: center;">
+        <img src="images/part1/roi_4.jpg" alt="Remove 4" width="500"/>
+        <figcaption style="font-style: italic">Vùng 4</figcaption>
+    </figure>
 
-    ![Remove 5](images/part1/roi_5.jpg)
-    *Vùng 5*
+    <figure style="text-align: center;">
+        <img src="images/part1/roi_5.jpg" alt="Remove 5" width="500"/>
+        <figcaption style="font-style: italic">Vùng 5</figcaption>
+    </figure>
 
 ## 1.3.2. Huấn luyện mô hình YOLO
 ## 1.3.2.1. Giới thiệu về YOLO
-**YOLO (You Only Look Once)** là một thuật toán nổi tiếng trong lĩnh vực phát hiện đối tượng (object detection), được giới thiệu lần đầu tiên vào năm 2016 bởi Joseph Redmon và cộng sự. Khác với các phương pháp hai giai đoạn truyền thống (như R-CNN hay Faster R-CNN), YOLO áp dụng cách tiếp cận phát hiện một giai đoạn (single-stage detection), trong đó toàn bộ ảnh đầu vào được xử lý chỉ trong một lần suy luận duy nhất.
+**YOLO (You Only Look Once)** là một thuật toán nổi tiếng trong lĩnh vực phát hiện đối tượng (object detection), được giới thiệu lần đầu tiên vào năm 2016 bởi Joseph Redmon và cộng sự. Khác với các phương pháp hai giai đoạn truyền thống (như **R-CNN** hay **Faster R-CNN**), YOLO áp dụng cách tiếp cận **phát hiện một giai đoạn** (single-stage detection), trong đó toàn bộ ảnh đầu vào được xử lý chỉ trong một lần suy luận duy nhất.
 
 Cụ thể, YOLO chia ảnh thành một lưới (grid) đều đặn và với mỗi ô lưới, mô hình dự đoán các bounding box ứng viên cùng với xác suất tồn tại của các lớp đối tượng. Tất cả các bước — từ phát hiện tới phân loại đối tượng — được thực hiện đồng thời trong một mạng nơ-ron tích chập duy nhất.
 
@@ -150,7 +174,7 @@ Vì YOLO là một mô hình học sâu, nó yêu cầu một lượng lớn d�
 | 20 | whole_half_rest | 32 |
 | 21 | whole_note | 171 |
 
-> **Lưu ý:** Bộ dữ liệu sẽ tốt hơn nếu số lượng các ký hiệu được phân bố đồng đều hơn. Tuy nhiên, do thời gian hạn chế, bộ dữ liệu này chỉ được xây dựng thông qua một số bản nhạc nên một số ký hiệu sẽ xuất hiện nhiều hơn các ký hiệu khác. **Vì vậy, mô hình này chỉ được coi là một mô hình thử nghiệm, chưa sử dụng cho các ứng dụng thực tế.**
+Trong triển khai thực tế, bộ dữ liệu sẽ tốt hơn nếu số lượng các ký hiệu được phân bố đồng đều hơn. Tuy nhiên, do thời gian hạn chế, bộ dữ liệu này chỉ được xây dựng thông qua một số bản nhạc nên một số ký hiệu sẽ xuất hiện nhiều hơn các ký hiệu khác. **Vì vậy, mô hình này chỉ được coi là một mô hình thử nghiệm, chưa sử dụng cho các ứng dụng thực tế.**
 
 ## 1.3.2.3. Gán nhãn dữ liệu
 Ở mỗi ảnh, các ký hiệu âm nhạc sẽ được gán nhãn bằng cách sử dụng các bounding box. Mỗi bounding box theo định dạng YOLOv8, bao gồm các thông tin sau: 
@@ -179,29 +203,35 @@ Dưới đây là ví dụ về 1 đoạn trong file text gán nhãn cho một �
 
 Ứng với mỗi ảnh, ta sẽ có một file text tương ứng chứa các thông tin về các ký hiệu âm nhạc trong ảnh đó.
 
-Với các kí hiệu đơn lẻ như khoá Sol, khoá Fa, dấu hoá, nốt tròn, nốt trắng, v.v., ta sẽ sử dụng các hình chữ nhật (bounding box) để bao quanh chúng. Đối với các nốt nhạc có đuôi nốt hoặc dấu nối, ta sẽ gán nhãn riêng cho phần đầu nốt và phần đuôi nốt/dấu nối. Điều này giúp mô hình có thể nhận diện và phân loại các ký hiệu một cách chính xác hơn.
+Với các kí hiệu đơn lẻ như **khoá Sol**, khoá Fa, dấu hoá, nốt tròn, nốt trắng, v.v., ta sẽ sử dụng các hình chữ nhật (bounding box) để bao quanh chúng. Đối với các nốt nhạc có đuôi nốt hoặc dấu nối, ta sẽ gán nhãn riêng cho phần đầu nốt và phần đuôi nốt/dấu nối. Điều này giúp mô hình có thể nhận diện và phân loại các ký hiệu một cách chính xác hơn.
 
-![Whole image label](images/part1/yolo_label.png)
-*Hình ảnh gán nhãn cho một vùng khuôn nhạc*
+<figure style="text-align: center;">
+    <img src="images/part1/yolo_label.png" alt="Whole image label" width="100%"/>
+    <figcaption style="font-style: italic">Hình ảnh gán nhãn cho một vùng khuôn nhạc</figcaption>
+</figure>
 
-![Stem label](images/part1/yolo_label3.png)
+<figure style="text-align: center;">
+    <img src="images/part1/yolo_label3.png" alt="Stem label" width="200"/>
+    <figcaption style="font-style: italic">Hình ảnh gán nhãn cho một nốt nhạc có đuôi nốt</figcaption>
+</figure>
 
-*Hình ảnh gán nhãn cho một nốt nhạc có đuôi nốt*
-
-![Beam label](images/part1/yolo_label2.png)
-*Hình ảnh gán nhãn cho một nốt nhạc có dấu nối*
+<figure style="text-align: center;">
+    <img src="images/part1/yolo_label2.png" alt="Beam label" width="500"/>
+    <figcaption style="font-style: italic">Hình ảnh gán nhãn cho một nốt nhạc có dấu nối</figcaption>
+</figure>
 
 > Lưu ý: Bounding box thường không bám sát với cạnh của ký hiệu âm nhạc, mà thường có khoảng cách nhất định. Điều này là do các ký hiệu âm nhạc có thể bị biến dạng hoặc che khuất bởi các yếu tố khác trong ảnh, và việc gán nhãn chính xác là rất khó khăn. 
 
 Trong một số trường hợp, khi các đầu nốt nằm sát nhau (biểu diễn hợp âm), các bounding box sẽ bị chồng lên nhau. Điều này có thể dẫn đến việc mô hình không nhận diện được các ký hiệu âm nhạc một cách chính xác.
 
-![Notehead overlay label](images/part1/yolo_label4.png)
-
-*Hình ảnh gán nhãn cho một nốt nhạc có đầu nốt nằm sát nhau*
+<figure style="text-align: center;">
+    <img src="images/part1/yolo_label4.png" alt="Notehead overlay label" width="150"/>
+    <figcaption style="font-style: italic">Hình ảnh gán nhãn cho một nốt nhạc có đầu nốt nằm sát nhau</figcaption>
+</figure>
 
 Khi các ảnh đã được gán nhãn đầy đủ, ta tiến hành xuất bộ dữ liệu này với một số tinh chỉnh cho mỗi ảnh để giảm thời gian huấn luyện và cải thiện hiệu suất:
 - Tự động định hướng nhằm loại bỏ các ảnh bị nghiêng hoặc không nằm ngang.
-- Căn chỉnh kích thước về 1080x480 pixel (nền đen). Kich thước này được chọn vì nó ưu tiên chiều rộng hơn chiều cao, phù hợp với vùng khuôn nhạc trong ảnh cũng như đủ độ sắc nét để nhận diện các ký hiệu âm nhạc.
+- Căn chỉnh kích thước về **1080x480 pixel** (nền đen). Kich thước này được chọn vì nó ưu tiên chiều rộng hơn chiều cao, phù hợp với vùng khuôn nhạc trong ảnh cũng như đủ độ sắc nét để nhận diện các ký hiệu âm nhạc.
 ## 1.3.2.4. Huấn luyện mô hình
 Mô hình YOLOv8 được huấn luyện trên bộ dữ liệu đã chuẩn bị với các thông số cấu hình sau:
 
@@ -248,25 +278,25 @@ YOLOv8 là phiên bản cải tiến mới nhất của họ YOLO với nhiều 
    - Nhánh phân loại (Classification branch): Dự đoán xác suất thuộc về từng lớp đối tượng
    - Nhánh hồi quy (Regression branch): Dự đoán tọa độ và kích thước của bounding box
 
-![YOLOv8 Architecture](images/part1/yolov8_architecture.png)
-*Kiến trúc tổng quan của YOLOv8*
+<figure style="text-align: center;">
+    <img src="images/part1/yolov8_architecture.png" alt="YOLOv8 Architecture" width="600"/>
+    <figcaption style="font-style: italic">Kiến trúc tổng quan của YOLOv8</figcaption>
+</figure>
 
 ### Quá trình huấn luyện
 
 Quá trình huấn luyện được thực hiện theo các bước sau:
 
-1. **Phân chia dữ liệu**: Bộ dữ liệu 135 ảnh được chia thành 3 phần:
+1. **Phân chia dữ liệu**: Bộ dữ liệu được chia thành 3 phần:
    - Train: 80%
    - Validation: 10%
    - Test: 10%
 
-2. **Khởi tạo mô hình**: Sử dụng mô hình YOLOv8 Nano - phiên bản nhỏ nhất và nhanh nhất của YOLOv8 - từ COCO dataset để khởi tạo mô hình, áp dụng kỹ thuật transfer learning để tận dụng các đặc trưng cơ bản đã được học.
+2. **Khởi tạo mô hình**: Sử dụng mô hình **YOLOv8 Nano** - phiên bản nhỏ nhất và nhanh nhất của YOLOv8 - từ COCO dataset để khởi tạo mô hình, áp dụng kỹ thuật transfer learning để tận dụng các đặc trưng cơ bản đã được học.
 
 3. **Các tham số**:
     - `data`: Đường dẫn đến file cấu hình dữ liệu (thường là `data.yaml`).
-
     - `epochs=300`: Huấn luyện mô hình trong 300 epochs (số lần mô hình đi qua toàn bộ tập dữ liệu huấn luyện).
-
     - `device=cuda`: Sử dụng GPU thông qua CUDA để tăng tốc quá trình huấn luyện. GPU được sử dụng là NVIDIA Telsa T4 với 16GB RAM, chuyên xử lí các tác vụ đòi hỏi nhiều tính toán.
 
 4. **Kết quả huấn luyện**: Các số liệu trả về sau khi mô hình đã được huấn luyện bao gồm:
@@ -275,10 +305,10 @@ Quá trình huấn luyện được thực hiện theo các bước sau:
     - **Độ phủ (recall)**: Đo lường tỉ lệ đối tượng thực tế được phát hiện bởi mô hình. Độ phủ cao nghĩa là mô hình có thể phát hiện hầu hết các kí hiệu trong bản nhạc.
 
     - **mAP (mean Average Precision)**: Độ chính xác trung bình trên tất cả các lớp. Một giá trị mAP cao cho thấy mô hình hoạt động tốt trong việc xác định và định vị các đối tượng một cách chính xác trên nhiều lớp khác nhau.
-        - **mAP50:** là độ chính xác trung bình ở ngưỡng IoU = 0.5. Đây có thể coi là thước đo độ chính xác của mô hình trong các mức độ "dễ" phát hiện.
-        - **mAP50-90:** là độ chính xác trung bình được tính toán ở các ngưỡng IoU khác nhau, trong khoảng từ 0.50 đến 0.95. Nó cung cấp cái nhìn toàn diện về hiệu suất của mô hình ở các mức độ "khó" phát hiện khác nhau.
+        - **mAP50:** Độ chính xác trung bình ở ngưỡng IoU = 0.5. Đây có thể coi là thước đo độ chính xác của mô hình trong các mức độ "dễ" phát hiện.
+        - **mAP50-90:** Độ chính xác trung bình được tính toán ở các ngưỡng IoU khác nhau, trong khoảng từ 0.50 đến 0.95. Nó cung cấp cái nhìn toàn diện về hiệu suất của mô hình ở các mức độ "khó" phát hiện khác nhau.
 
-    - **Loss values**: là các giá trị hàm mất mát được sử dụng để tối ưu hóa mô hình trong quá trình huấn luyện. Sự giảm dần của các giá trị loss trong quá trình huấn luyện cho thấy mô hình đang học tốt.
+    - **Loss values**: Các giá trị hàm mất mát được sử dụng để tối ưu hóa mô hình trong quá trình huấn luyện. Sự giảm dần của các giá trị loss trong quá trình huấn luyện cho thấy mô hình đang học tốt.
         - **Box Loss**: Đo lường sai số trong dự đoán vị trí và kích thước bounding box.
         - **Classification Loss**: Đo lường sai số trong việc phân loại đối tượng.
         - **Objectness Loss**: Đo lường sai số trong việc xác định liệu có đối tượng hay không.
@@ -287,20 +317,23 @@ Quá trình huấn luyện được thực hiện theo các bước sau:
 
 5. **Đánh giá quá trình thông qua biểu đồ**: 
 
-    ![Process Result](images/part1/results.png)
-    *Biểu đồ thể hiện sự thay đổi của các thông số trong quá trình huấn luyện*
+<figure style="text-align: center;">
+    <img src="images/part1/results.png" alt="Loss" width="750"/>
+    <figcaption style="font-style: italic">Biểu đồ thể hiện sự thay đổi của các thông số trong quá trình huấn luyện</figcaption>
+</figure>
 
-    - `train/box_loss`: Giảm nhanh chóng ở những epochs đầu tiên và sau đó tiếp tục giảm chậm hơn, có vẻ như đang hội tụ. Điều này cho thấy việc dự đoán vị trí bounding box ngày càng chính xác hơn.
+Các thông số đáng chú ý trong biểu đồ trên bao gồm:
+- `train/box_loss`: Giảm nhanh chóng ở những **epochs** đầu tiên và sau đó tiếp tục giảm chậm hơn, có vẻ như đang hội tụ. Điều này cho thấy việc dự đoán vị trí bounding box ngày càng chính xác hơn.
 
-    - `val/box_loss`: Giảm tương tự như trên tập huấn luyện, nhưng có vẻ như bắt đầu ổn định hoặc giảm rất chậm ở những epochs cuối.
+- `val/box_loss`: Giảm tương tự như trên tập huấn luyện, nhưng có vẻ như bắt đầu ổn định hoặc giảm rất chậm ở những epochs cuối.
 
-    - `metrics/precision(B)`: Tăng nhanh chóng và sau đó có thể dao động nhẹ hoặc ổn định ở một mức tương đối cao. Điều này cho thấy độ chính xác của việc dự đoán đang dần được cải thiện.
+- `metrics/precision(B)`: Tăng nhanh chóng và sau đó có thể dao động nhẹ hoặc ổn định ở một mức tương đối cao. Điều này cho thấy độ chính xác của việc dự đoán đang dần được cải thiện.
 
-    - `metrics/recall(B)`: Tăng nhanh chống và tiến gần đến một điểm ổn định. Điều này cho thấy mô hình ngày càng ít bỏ sót kí hiệu hơn.
+- `metrics/recall(B)`: Tăng nhanh chống và tiến gần đến một điểm ổn định. Điều này cho thấy mô hình ngày càng ít bỏ sót kí hiệu hơn.
 
-    - `metrics/mAP50(B)`: Tăng lên và có dấu hiệu đạt đến một mức ổn định (~ 0.75), cho thấy hiệu suất tốt trên dữ liệu mới ở ngưỡng IoU 0.5.
+- `metrics/mAP50(B)`: Tăng lên và có dấu hiệu đạt đến một mức ổn định (~ 0.75), cho thấy hiệu suất tốt trên dữ liệu mới ở ngưỡng IoU 0.5.
 
-    - `metrics/mAP50-95(B)`: Tăng lên nhưng có dấu hiệu không vượt qua mức 0.5, cho thấy mô hình chưa đủ tốt trong nhận diện các trường hợp phức tạp.
+- `metrics/mAP50-95(B)`: Tăng lên nhưng có dấu hiệu không vượt qua mức 0.5, cho thấy mô hình chưa đủ tốt trong nhận diện các trường hợp phức tạp.
 
 ### Đánh giá mô hình chi tiết
 
@@ -332,9 +365,9 @@ Sau khi hoàn tất quá trình huấn luyện, mô hình được đánh giá t
 | **all**           | **0.864**  | **0.676** | **0.779** | **0.502**    |
 
 Từ bảng kết quả, ta có thể thấy:
-- Các ký hiệu phổ biến như eighth_beam, eighth_flag, eighth_rest, flat, sharp, sixteenth_beam, quarter_note, treble_clef, bass_clef có độ chính xác cao (mAP50 > 0.9) và độ phủ tốt (recall > 0.9), cho thấy mô hình có khả năng phát hiện tốt các ký hiệu này.
+- Các ký hiệu phổ biến như eighth_beam, eighth_flag, eighth_rest, flat, sharp, sixteenth_beam, quarter_note, treble_clef, bass_clef có độ chính xác cao (**mAP50 > 0.9**) và độ phủ tốt (**recall > 0.9**), cho thấy mô hình có khả năng phát hiện tốt các ký hiệu này.
 
-- Các ký hiệu hiếm gặp như sixteenth_flag, sixteenth_rest, thirty_second_beam có hiệu suất thấp hơn (mAP50 < 0.5) do thiếu dữ liệu huấn luyện.
+- Các ký hiệu hiếm gặp như sixteenth_flag, sixteenth_rest, thirty_second_beam có hiệu suất thấp hơn (**mAP50 < 0.5**) do thiếu dữ liệu huấn luyện.
 
 - Nhìn chung, mô hình có độ chính xác trung bình (mAP50) đạt 0.779 và độ phủ (recall) đạt 0.676, cho thấy mô hình có khả năng phát hiện các ký hiệu âm nhạc với độ chính xác là chấp nhận được với một bộ dữ liệu nhỏ.
 
@@ -342,8 +375,10 @@ Từ bảng kết quả, ta có thể thấy:
 
 Để hiểu rõ hơn về các lỗi của mô hình, ta tiến hành phân tích confusion matrix và các trường hợp dự đoán sai:
 
-![Confusion Matrix](images/part1/confusion_matrix_normalized.png)
-*Confusion matrix trên tập test*
+<figure style="text-align: center;">
+    <img src="images/part1/confusion_matrix_normalized.png" alt="Confusion Matrix" width="800"/>
+    <figcaption style="font-style: italic">Confusion matrix trên tập test</figcaption>
+</figure>
 
 Các lỗi thường gặp bao gồm:
 1. **False Negatives**: Mô hình bỏ sót một số ký hiệu, đặc biệt là các ký hiệu nhỏ hoặc bị che khuất một phần, và nhận diện chúng là nền (background).
@@ -355,12 +390,12 @@ Các lỗi thường gặp bao gồm:
 
 ### Kết luận về hiệu suất mô hình
 
-Mặc dù được huấn luyện trên bộ dữ liệu còn hạn chế về số lượng và sự cân bằng, mô hình YOLOv8 đã thể hiện khả năng nhận dạng ký hiệu âm nhạc khá tốt với mAP50 đạt gần 80% và mAP50-95 đạt 50%. Mô hình có khả năng phát hiện tốt các ký hiệu phổ biến như khoá Sol, khoá Fa, nốt nhạc, dấu hoá, v.v. với độ chính xác cao và độ phủ tốt.
+Mặc dù được huấn luyện trên bộ dữ liệu còn hạn chế về số lượng và sự cân bằng, mô hình YOLOv8 Nano đã thể hiện khả năng nhận diện ký hiệu âm nhạc khá tốt với mAP50 đạt gần 80% và mAP50-95 đạt 50%. Mô hình có khả năng phát hiện tốt các ký hiệu phổ biến như khoá Sol, khoá Fa, nốt nhạc, dấu hoá, v.v. với độ chính xác cao và độ phủ tốt.
 
 Tuy nhiên, vẫn còn những thách thức cần khắc phục như hiệu suất thấp đối với các ký hiệu hiếm gặp, khả năng phân biệt giữa các ký hiệu có hình dạng tương tự, và độ chính xác trong việc xác định vị trí của các ký hiệu phức tạp.
 
 ## 1.3.3. Xuất mô hình
-Mô hình YOLOv8 sau khi được huấn luyện sẽ được xuất ra dưới dạng file `.pt` để có thể sử dụng cho các ứng dụng thực tế. File này chứa tất cả các trọng số và cấu trúc của mô hình, cho phép người dùng dễ dàng tải và sử dụng mô hình mà không cần phải huấn luyện lại từ đầu.
+Mô hình sau khi được huấn luyện sẽ được xuất ra dưới dạng file `.pt` để có thể sử dụng cho các ứng dụng thực tế. File này chứa tất cả các trọng số và cấu trúc của mô hình, cho phép người dùng dễ dàng tải và sử dụng mô hình mà không cần phải huấn luyện lại từ đầu.
 
 Mô hình được lưu trong thư mục `runs/detect/train/weights/` với hai phiên bản:
 - `best.pt`: Mô hình với hiệu suất tốt nhất trong quá trình huấn luyện (dựa trên mAP50-95)

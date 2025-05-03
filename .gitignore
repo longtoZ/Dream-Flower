@@ -5,3 +5,5 @@ res/
 .env
 dataset/
 label_images/
+*.exe
+*.pptx
