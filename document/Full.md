@@ -27,8 +27,6 @@
 
 5. [Kết luận](#5-kết-luận)
 
-6. [Tài liệu tham khảo](#6-tài-liệu-tham-khảo)
-
 # 1. Hệ thống nhận diện bản nhạc quang học (OMR)
 ## 1.1. Khái quát về OMR
 
@@ -1674,5 +1672,3 @@ Dự án "Hệ thống Nhận diện bản nhạc quang học và Xử lý âm t
 Về mặt kỹ thuật, dự án đã thành công trong việc áp dụng mô hình YOLOv8 cho việc nhận diện ký hiệu âm nhạc, đạt mAP50 hơn 85% trên tập dữ liệu kiểm thử. Hệ thống cũng giải quyết hiệu quả các thách thức trong việc xử lý dữ liệu âm nhạc như xác định cao độ, trường độ của các nốt nhạc, và kết hợp các khuông nhạc khác nhau. Công cụ chỉnh sửa nhãn trực quan đã cung cấp giải pháp hữu ích cho việc cải thiện độ chính xác của quá trình nhận diện.
 
 Phần xử lý âm thanh đã thành công trong việc chuyển đổi dữ liệu nhạc lý thành âm thanh chất lượng cao, với khả năng tùy chọn nhạc cụ và tạo hiệu ứng âm thanh tự nhiên. Kiến trúc đa luồng kết hợp với các công nghệ web hiện đại như SSE và WebSocket đã cho phép hệ thống xử lý dữ liệu hiệu quả và cung cấp trải nghiệm người dùng mượt mà. Dự án này không chỉ là một minh chứng cho tiềm năng của công nghệ AI trong lĩnh vực âm nhạc mà còn mở ra hướng phát triển cho các ứng dụng nhận diện và xử lý âm nhạc trong tương lai.
-
-# 6. Tài liệu tham khảo

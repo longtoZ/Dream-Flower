@@ -100,26 +100,26 @@ start.x = canvas_width / 2 - (img_width * s) / 2
 start.y = canvas_height / 2 - (img_height * s) / 2
 ```
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part2/image-start.png" alt="Hình ảnh chứa nhãn" width="100%">
-    <figcaption>Vị trí ảnh so với canvas</figcaption>
-</figure>
+    <p>Vị trí ảnh so với canvas</i></p>
+</div>
 
 Thực tế, việc hiển thị ảnh trên Canvas gồm 2 loại: ảnh chứa nhãn thông thường và ảnh chứa nhãn được "focus".
 
 - **Ảnh chứa nhãn thông thường:** Là ảnh được hiển thị trên Canvas mà không có bất kỳ thao tác nào từ người dùng. Trong đó, các bounding box được hiển thị đồng đều với nhau thông qua hàm `drawImage`. Hàm này duyệt qua tất cả các bounding box trong danh sách `boxes` và vẽ chúng lên Canvas với màu sắc khác nhau.
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part2/draw-image.png" alt="Hình ảnh chứa nhãn thông thường" width="100%">
-    <figcaption>Hình ảnh chứa nhãn thông thường</figcaption>
-</figure>
+    <p>Hình ảnh chứa nhãn thông thường</i></p>
+</div>
 
 - **Ảnh chứa nhãn được "focus":** Là ảnh được hiển thị trên Canvas với một bounding box được chọn (focus box). Trong trường hợp này, các bounding box khác sẽ được làm mờ đi bằng cách sử dụng hàm `drawImageWithFocus` với độ mờ (opacity) thấp hơn. Điều này giúp người dùng dễ dàng nhận diện và chỉnh sửa bounding box đang được chọn. Ngoài ra, khi người dùng nhấn vào một bounding box, nó sẽ hiển thị tên của ký hiệu tương ứng bên cạnh.
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part2/draw-image-with-focus.png" alt="Hình ảnh chứa nhãn được "focus"" width="100%">
-    <figcaption>Hình ảnh chứa nhãn được "focus"</figcaption>
-</figure>
+    <p>Hình ảnh chứa nhãn được "focus"</i></p>
+</div>
 
 ### 2.2.3.2. Thu phóng và kéo ảnh
 Thu phóng ảnh điều chỉnh tỷ lệ `scale` theo bước **0.05**, thông qua sự kiện cuộn chuột (`wheel`). Hệ thống duy trì vị trí trung tâm canvas trong quá trình phóng to/thu nhỏ, sử dụng công thức:

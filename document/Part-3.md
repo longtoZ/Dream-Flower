@@ -55,10 +55,10 @@ Sau đó, toạ độ các bounding box sẽ được sắp xếp theo thứ t�
 ### 3.1.2.3. Xác định âm giai
 Âm giai của bản nhạc được xác định dựa trên số lượng các dấu thăng và dấu giáng ở đầu khuông nhạc. Lưu ý, các dấu hoá này phải được sắp xếp liền kề nhau và dường như không có khoảng cách nào quá lớn giữa chúng (thường nhỏ hơn `line_space / 2`). 
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part3/scale.png" alt="Scale" width="100%">
-    <figcaption style="font-style: italic">Vùng để xác định âm giai</figcaption>
-</figure>
+    <p><i>Vùng để xác định âm giai</i></p>
+</div>
 
 Sau khi chương trình thu thập được nhóm các dấu hoá này, nó sẽ đếm số **lượng dấu + kí hiệu dấu** và ánh xạ chúng vào một dictionary `SCALE` để xác định âm giai của bản nhạc. Các âm giai được hỗ trợ bao gồm:
 ```python
@@ -138,10 +138,10 @@ SCALE = {
 
     Tương ứng với mỗi âm giai, các nốt nhạc có thể được **thăng hoặc giáng nửa tông** (semitone) để tạo thành các nốt nhạc khác. Ví dụ, trong âm giai `C major`, nốt nhạc `C` có thể được thăng thành `Cs` hoặc giáng thành `B`. Nhưng có những trường hợp đặc biệt khi một khuông nhạc chứa nhiều hơn 1 khoá nhạc, ví dụ như cả khoá Sol và khoá Fa.
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part3/multiple-clef.png" alt="Multiple clefs" width="100%">
-        <figcaption style="font-style: italic">Hai khoá nhạc khác nhau trong cùng một khuông nhạc</figcaption>
-    </figure>
+        <p><i>Hai khoá nhạc khác nhau trong cùng một khuông nhạc</i></p>
+    </div>
 
     Trong trường hợp này, ta sẽ phải lưu trữ một **khuông nhạc dự phòng** mà toạ độ dòng kẻ và nốt nhạc được ánh xạ khác với thông thường. Ví dụ, khuông nhạc khoá Fa nhưng lại chứa các nốt nhạc khoá Sol.
 
@@ -168,10 +168,10 @@ SCALE = {
         # Xử lý cao độ nốt nhạc
     ```
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part3/sharp-before-note.png" alt="Sharp on note" width="200">
-        <figcaption style="font-style: italic">Dấu thăng nằm trước nốt nhạc</figcaption>
-    </figure>
+        <p><i>Dấu thăng nằm trước nốt nhạc</i></p>
+    </div>
 
 ### 3.1.2.5. Xác định trường độ của các nốt nhạc
 
@@ -193,10 +193,10 @@ SCALE = {
 
     Đối với mỗi dấu nối, ta sẽ dùng 2 biến là `start_available` và `end_available` để xác định xem vị trí đầu và cuối của nó còn trống hay không (tức là chưa có nốt nhạc nào được xử lí tại vị trí đó). Tiếp theo, ta sẽ dùng 1 biến `turned_side` để xác định xem dấu nối này có bị lật ngược hay không (hoặc có thể coi là đầu nốt quay về bên trái hay bên phải). Nếu `turned_side` là `True`, thì đầu nốt sẽ quay về bên trái, ngược lại nếu là `False` thì đầu nốt sẽ quay về bên phải.
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part3/turned-side.png" alt="Turned side 2" width="750">
-        <figcaption style="font-style: italic">Đầu nốt quay về bên trái và phải</figcaption>
-    </figure>
+        <p><i>Đầu nốt quay về bên trái và phải</i></p>
+    </div>
     
     Trong trường hợp có các dấu nối liền nhau, chúng sẽ có những ảnh hưởng với nhau. Ví dụ, `end_available` của dấu nối này sẽ là `start_available` của dấu nối tiếp theo; hay `turned_side` trong một cụm dấu nối sẽ là giống nhau như hình trên.
 
@@ -252,10 +252,10 @@ SCALE = {
             return BEAM_WEIGHT[next_beam] < BEAM_WEIGHT[curr_beam]
         ```
 
-        <figure style="text-align: center;">
+        <div align="center">
             <img src="images/part3/beam-priority.png" alt="Beam end box" width="200">
-            <figcaption style="font-style: italic">Nốt ở vị trị cuối được ưu tiên trường độ 1/16 thay vì 1/8</figcaption>
-        </figure>
+            <p><i>Nốt ở vị trị cuối được ưu tiên trường độ 1/16 thay vì 1/8</i></p>
+        </div>
     
     3. **Trạng thái 3**: Dấu nối không có nốt nhạc ở vị trí đầu (hoặc `start_available = False` tức là vị trí đầu đã có nốt nhạc được xử lí trước đó) nhưng lại có nốt nhạc ở vị trí cuối
 
@@ -267,10 +267,10 @@ SCALE = {
 
     Các nốt nhạc sau khi được xử lí (tức là đã xác định được trường độ) thì sẽ được ghi nhận thông qua biến `start_available` và `end_available` của chúng. Hơn nữa, biến này còn có tác dụng như mốt **"checkpoint"**, kết hợp với `last_valid_note_idx` để đánh dấu vị trí nốt nhạc cuối cùng đã được xử lí. Điều này giúp cho việc quay lại xử lí nốt nhạc tiếp theo của `last_valid_note_idx` được tiếp tục trong trường hợp chương trình bị "mất dấu" nốt nhạc khi xử lí dấu nối.
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part3/last-valid-note.png" alt="Last valid note 2" width="500">
-        <figcaption style="font-style: italic">Nốt nhạc cuối cùng bị "mất dấu"</figcaption>
-    </figure>
+        <p><i>Nốt nhạc cuối cùng bị "mất dấu"</i></p>
+    </div>
 
     Hình ảnh trên là một ví dụ tiêu biểu cho trường hợp này, khi mà có sự sai lệch đủ lớn trong công đoạn gán nhãn dẫn đến `abs(curr_beam.x2 - next_note.x1) > max_space`. Khi này, chương trình sẽ quay lại xử lí nốt nhạc cuối cùng đã được xử lí - nốt thứ 3 - và tiếp tục xử lí nốt nhạc thứ 4.
 
@@ -309,15 +309,15 @@ note_playtime = {
 
 Trong một số bản nhạc, đôi khi có sự xuất hiện của nhiều hơn 1 kí hiệu nhịp (tương tự như trường hợp có nhiều hơn 1 khoá nhạc). Khi này, ta sẽ phải xử lí tương tự như trường hợp có nhiều hơn 1 khoá nhạc bằng các cập nhật `TIME_COEFF` dựa trên `TIME_SIGNATURE_WEIGHT`để tính `measure_playtime`. Hình ảnh dưới đây là một ví dụ cho trường hợp này:
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part3/four-four.png" alt="Four four" width="500">
-    <figcaption style="font-style: italic">Bản nhạc ban đầu có nhịp 4/4</figcaption>
-</figure>
+    <p><i>Bản nhạc ban đầu có nhịp 4/4</i></p>
+</div>
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part3/two-four.png" alt="Two four" width="500">
-    <figcaption style="font-style: italic">Bản nhạc sau đó có nhịp 2/4</figcaption>
-</figure>
+    <p><i>Bản nhạc sau đó có nhịp 2/4</i></p>
+</div>
 
 
 Cuối cùng, ta sẽ thêm ô nhịp này vào `sheet` với định dạng như sau:
@@ -451,10 +451,10 @@ with USED_NOTES_LOCK:
 
 Thời gian thể hiện của mỗi ô nhịp được xác định bằng `measure_playtime`, tương ứng với tổng thời gian lý thuyết của ô nhịp. Tuy nhiên, nếu thời gian chỉ đúng bằng `measure_playtime`, thì âm thanh ở cuối ô nhịp sẽ bị ngắt quãng và chuyển qua ô nhịp tiếp theo ngay lập tức. Điều này sẽ làm cho âm thanh nghe không được tự nhiên và không có độ ngân vang (sustain). Do đó, ta sẽ thêm một khoảng duy trì âm, bằng `0.25` lần thời gian ô nhịp, vào cuối ô nhịp hiện tại và chồng ô nhịp tiếp theo lên ngay sau `measure_playtime` của ô nhịp hiện tại.
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part3/measure-sustain.png" alt="Measure sustain" width="750">
-    <figcaption style="font-style: italic">Ô nhịp không được duy trì âm thanh và ô nhịp được duy trì âm thanh</figcaption>
-</figure>
+    <p><i>Ô nhịp không được duy trì âm thanh và ô nhịp được duy trì âm thanh</i></p>
+</div>
 
 Trước khi thêm âm thanh của các nốt vào ô nhịp, ta sẽ tạo ra một ô nhịp trống với thời gian bằng `measure_playtime * 1.25`. Sau đó, ta duyệt qua các ký hiệu trong ô nhịp và thêm vào ô nhịp trống theo các bước sau:
 
@@ -548,10 +548,10 @@ Trước khi thêm âm thanh của các nốt vào ô nhịp, ta sẽ tạo ra m
     chord = chord.fade_in(50).fade_out(50)
     ```
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part3/chord-sustain.png" alt="Chord sustain" width="750">
-        <figcaption style="font-style: italic">Hợp âm không được duy trì âm thanh và hợp âm được duy trì âm thanh</figcaption>
-    </figure>
+        <p><i>Hợp âm không được duy trì âm thanh và hợp âm được duy trì âm thanh</i></p>
+    </div>
 
 5. **Thêm quãng nghỉ (nếu có)**:
 

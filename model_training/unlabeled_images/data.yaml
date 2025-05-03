@@ -1,5 +1,0 @@
-train: train/images
-val: train/images
-
-nc: 21
-names: ['barline', 'bass_clef', 'decrescendo', 'dotted_half_note', 'dotted_quarter_note', 'eight_beam', 'eight_flag', 'eight_rest', 'flat', 'half_note', 'natural', 'quarter_note', 'quarter_rest', 'sharp', 'sixteenth_beam', 'sixteenth_flag', 'sixteenth_rest', 'thirty_second_beam', 'treble_clef', 'whole_half_rest', 'whole_note']

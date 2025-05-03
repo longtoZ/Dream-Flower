@@ -41,33 +41,33 @@ Công đoạn đầu tiên trong xử lý ảnh là phân chia ảnh thành các
 
 - Đây là ảnh gốc, được chụp lấy từ một trang của bản nhạc. Ảnh này có độ phân giải cao và chứa nhiều ký hiệu âm nhạc khác nhau.
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/original.png" alt="Original" width="500"/>
-    <figcaption style="font-style: italic">Ảnh gốc</figcaption>
-</figure>
+    <p><i>Ảnh gốc</i></p>
+</div>
 
 - Ảnh được chuyển sang không gian màu xám, sau đó áp dụng **bộ lọc Gaussian** với kernel kích thước (5×5) nhằm làm giảm nhiễu cục bộ.
 
 - Ảnh mờ được **nhị phân hóa** ngược sử dụng phương pháp `Otsu` (kí hiệu trắng trên nền đen). Các vùng tối trong ảnh sẽ trở thành màu trắng (255), trong khi các vùng sáng sẽ trở thành màu đen (0), và không có kí hiệu nào nằm trong khoảng "màu xám" (khoảng giữa 0 và 255). Mục đích của bước này là làm nổi bật các ký hiệu âm nhạc trong ảnh.
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/thresh.png" alt="Binary" width="500"/>
-    <figcaption style="font-style: italic">Ảnh nhị phân</figcaption>
-</figure>
+    <p><i>Ảnh nhị phân</i></p>
+</div>
 
 - **Phép toán giãn nở** (dilation) được sử dụng với một ma trận nhị phân kích thước (40x10) (`cv2.MORPH_RECT`) chứa toàn giá trị 1. "Hình chữ nhật" này sẽ kết nối các thành phần nằm gần nhau và làm cho chúng liên kết với nhau thành một khối liên tục. Điều này giúp làm nổi bật các cặp khuông nhạc, thuận lợi cho việc tìm đường biên và tách bản nhạc thành các phần nhỏ hơn để nhận diện.
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/dilate.png" alt="Dilate" width="500"/>
-    <figcaption style="font-style: italic">Ảnh sau khi giãn nở</figcaption>
-</figure>
+    <p><i>Ảnh sau khi giãn nở</i></p>
+</div>
 
 - Từ ảnh nhị phân đã được xử lý, ta sử dụng **phương pháp tìm đường biên** (contour) để xác định các vùng chứa khuông nhạc. Với tham số `cv2.RETR_EXTERNAL`, chỉ trích xuất các đường biên ngoài cùng, bỏ qua các đường biên bên trong. Điều này giúp loại bỏ các chi tiết không cần thiết và chỉ giữ lại các khuôn nhạc chính. Ngoài ra, ta cũng sử dụng tham số `cv2.CHAIN_APPROX_SIMPLE` để giảm số lượng điểm trong đường biên, giúp tiết kiệm bộ nhớ và tăng tốc độ xử lý. Lưu ý, ta sẽ chỉ lấy các đường biên có độ dài bằng 80% so với chiều rộng của ảnh vì các khuông nhạc thường có chiều dài như vậy.
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/contour.jpg" alt="Contour" width="500"/>
-    <figcaption style="font-style: italic">Ảnh sau khi tìm đường biên</figcaption>
-</figure>
+    <p><i>Ảnh sau khi tìm đường biên</i></p>
+</div>
 
 ## 1.3.1.2. Trích xuất dòng kẻ khuông nhạc
 Ta sẽ thực hiện trich xuất các dòng kẻ khuông nhạc từ ảnh gốc. Các bước thực hiện như sau:
@@ -107,35 +107,35 @@ Sau khi đã lọc ra các dòng kẻ, ta tiến hành loại bỏ các dòng k�
 
 - Cuối cùng, ảnh được đảo ngược lại về nền trắng - đối tượng đen, thuận tiện cho các bước phân tích sau này. Dưới đây là các vùng khuông nhạc đã được loại bỏ dòng kẻ:
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part1/roi_0.jpg" alt="Remove 0" width="500"/>
-        <figcaption style="font-style: italic">Vùng 0</figcaption>
-    </figure>
+        <p><i>Vùng 0</i></p>
+    </div>
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part1/roi_1.jpg" alt="Remove 1" width="500"/>
-        <figcaption style="font-style: italic">Vùng 1</figcaption>
-    </figure>
+        <p><i>Vùng 1</i></p>
+    </div>
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part1/roi_2.jpg" alt="Remove 2" width="500"/>
-        <figcaption style="font-style: italic">Vùng 2</figcaption>
-    </figure>
+        <p><i>Vùng 2</i></p>
+    </div>
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part1/roi_3.jpg" alt="Remove 3" width="500"/>
-        <figcaption style="font-style: italic">Vùng 3</figcaption>
-    </figure>
+        <p><i>Vùng 3</i></p>
+    </div>
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part1/roi_4.jpg" alt="Remove 4" width="500"/>
-        <figcaption style="font-style: italic">Vùng 4</figcaption>
-    </figure>
+        <p><i>Vùng 4</i></p>
+    </div>
 
-    <figure style="text-align: center;">
+    <div align="center">
         <img src="images/part1/roi_5.jpg" alt="Remove 5" width="500"/>
-        <figcaption style="font-style: italic">Vùng 5</figcaption>
-    </figure>
+        <p><i>Vùng 5</i></p>
+    </div>
 
 ## 1.3.2. Huấn luyện mô hình YOLO
 ## 1.3.2.1. Giới thiệu về YOLO
@@ -205,29 +205,29 @@ Dưới đây là ví dụ về 1 đoạn trong file text gán nhãn cho một �
 
 Với các kí hiệu đơn lẻ như **khoá Sol**, khoá Fa, dấu hoá, nốt tròn, nốt trắng, v.v., ta sẽ sử dụng các hình chữ nhật (bounding box) để bao quanh chúng. Đối với các nốt nhạc có đuôi nốt hoặc dấu nối, ta sẽ gán nhãn riêng cho phần đầu nốt và phần đuôi nốt/dấu nối. Điều này giúp mô hình có thể nhận diện và phân loại các ký hiệu một cách chính xác hơn.
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/yolo_label.png" alt="Whole image label" width="100%"/>
-    <figcaption style="font-style: italic">Hình ảnh gán nhãn cho một vùng khuôn nhạc</figcaption>
-</figure>
+    <p><i>Hình ảnh gán nhãn cho một vùng khuôn nhạc</i></p>
+</div>
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/yolo_label3.png" alt="Stem label" width="200"/>
-    <figcaption style="font-style: italic">Hình ảnh gán nhãn cho một nốt nhạc có đuôi nốt</figcaption>
-</figure>
+    <p><i>Hình ảnh gán nhãn cho một nốt nhạc có đuôi nốt</i></p>
+</div>
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/yolo_label2.png" alt="Beam label" width="500"/>
-    <figcaption style="font-style: italic">Hình ảnh gán nhãn cho một nốt nhạc có dấu nối</figcaption>
-</figure>
+    <p><i>Hình ảnh gán nhãn cho một nốt nhạc có dấu nối</i></p>
+</div>
 
 > Lưu ý: Bounding box thường không bám sát với cạnh của ký hiệu âm nhạc, mà thường có khoảng cách nhất định. Điều này là do các ký hiệu âm nhạc có thể bị biến dạng hoặc che khuất bởi các yếu tố khác trong ảnh, và việc gán nhãn chính xác là rất khó khăn. 
 
 Trong một số trường hợp, khi các đầu nốt nằm sát nhau (biểu diễn hợp âm), các bounding box sẽ bị chồng lên nhau. Điều này có thể dẫn đến việc mô hình không nhận diện được các ký hiệu âm nhạc một cách chính xác.
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/yolo_label4.png" alt="Notehead overlay label" width="150"/>
-    <figcaption style="font-style: italic">Hình ảnh gán nhãn cho một nốt nhạc có đầu nốt nằm sát nhau</figcaption>
-</figure>
+    <p><i>Hình ảnh gán nhãn cho một nốt nhạc có đầu nốt nằm sát nhau</i></p>
+</div>
 
 Khi các ảnh đã được gán nhãn đầy đủ, ta tiến hành xuất bộ dữ liệu này với một số tinh chỉnh cho mỗi ảnh để giảm thời gian huấn luyện và cải thiện hiệu suất:
 - Tự động định hướng nhằm loại bỏ các ảnh bị nghiêng hoặc không nằm ngang.
@@ -278,10 +278,10 @@ YOLOv8 là phiên bản cải tiến mới nhất của họ YOLO với nhiều 
    - Nhánh phân loại (Classification branch): Dự đoán xác suất thuộc về từng lớp đối tượng
    - Nhánh hồi quy (Regression branch): Dự đoán tọa độ và kích thước của bounding box
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/yolov8_architecture.png" alt="YOLOv8 Architecture" width="600"/>
-    <figcaption style="font-style: italic">Kiến trúc tổng quan của YOLOv8</figcaption>
-</figure>
+    <p><i>Kiến trúc tổng quan của YOLOv8</i></p>
+</div>
 
 ### Quá trình huấn luyện
 
@@ -317,10 +317,10 @@ Quá trình huấn luyện được thực hiện theo các bước sau:
 
 5. **Đánh giá quá trình thông qua biểu đồ**: 
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/results.png" alt="Loss" width="750"/>
-    <figcaption style="font-style: italic">Biểu đồ thể hiện sự thay đổi của các thông số trong quá trình huấn luyện</figcaption>
-</figure>
+    <p><i>Biểu đồ thể hiện sự thay đổi của các thông số trong quá trình huấn luyện</i></p>
+</div>
 
 Các thông số đáng chú ý trong biểu đồ trên bao gồm:
 - `train/box_loss`: Giảm nhanh chóng ở những **epochs** đầu tiên và sau đó tiếp tục giảm chậm hơn, có vẻ như đang hội tụ. Điều này cho thấy việc dự đoán vị trí bounding box ngày càng chính xác hơn.
@@ -375,10 +375,10 @@ Từ bảng kết quả, ta có thể thấy:
 
 Để hiểu rõ hơn về các lỗi của mô hình, ta tiến hành phân tích confusion matrix và các trường hợp dự đoán sai:
 
-<figure style="text-align: center;">
+<div align="center">
     <img src="images/part1/confusion_matrix_normalized.png" alt="Confusion Matrix" width="800"/>
-    <figcaption style="font-style: italic">Confusion matrix trên tập test</figcaption>
-</figure>
+    <p><i>Confusion matrix trên tập test</i></p>
+</div>
 
 Các lỗi thường gặp bao gồm:
 1. **False Negatives**: Mô hình bỏ sót một số ký hiệu, đặc biệt là các ký hiệu nhỏ hoặc bị che khuất một phần, và nhận diện chúng là nền (background).

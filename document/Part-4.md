@@ -310,4 +310,3 @@ Trong hệ thống, WaveSurfer.js được sử dụng để hiển thị sóng 
 
 pdf2image là một thư viện Python cho phép chuyển đổi file PDF thành các hình ảnh (image) với độ phân giải cao. Thư viện này sử dụng `poppler` để thực hiện việc chuyển đổi và hỗ trợ nhiều định dạng hình ảnh khác nhau như PNG, JPEG, BMP, v.v.
 Thư viện này rất hữu ích trong việc xử lý các file PDF, đặc biệt là trong các ứng dụng cần phân tích nội dung của file PDF như OMR.
-

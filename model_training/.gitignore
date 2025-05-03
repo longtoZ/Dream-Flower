@@ -1,0 +1,9 @@
+**/*.png
+**/*.jpg
+res/
+.ipynb_checkpoints
+dataset/
+label_images/
+unlabeled_images/
+*.exe
+*.pptx

@@ -1,15 +1,13 @@
-# resources.py
 import os
 import io
 import uuid
 import base64
 import json
-import time # For waiting
 
-from flask import request, Response, jsonify, current_app, send_file
+from flask import request, Response, jsonify, current_app
 from flask_restful import Resource
 from flask_socketio import emit
-from pdf2image import convert_from_path, pdfinfo_from_path
+from pdf2image import convert_from_path
 from PIL import Image
 import cv2
 import numpy as np
@@ -24,10 +22,6 @@ from audio_generator import combine_audio
 from extensions import socketio
 
 # --- API Resources ---
-
-# Temporary storage for filename (Consider a more robust solution for production)
-# This is still not ideal for concurrent requests or multiple server workers.
-# A better approach might involve a database, cache (Redis), or passing state via URLs/requests.
 uploaded_files_state = {} 
 
 class UploadPdf(Resource):
@@ -74,7 +68,7 @@ class StreamImageResults(Resource):
         
         file_info = uploaded_files_state[session_id]
         uploaded_filepath = file_info["path"]
-        original_filename = file_info["filename"] # Keep original for reference if needed
+        original_filename = file_info["filename"]
 
         if not os.path.exists(uploaded_filepath):
             return Response(f"data: {json.dumps({'error': 'Uploaded file not found on server'})}\n\n", mimetype="text/event-stream")

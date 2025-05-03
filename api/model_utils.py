@@ -1,10 +1,8 @@
-# model_utils.py
 import io
 import cv2
 import numpy as np
 from ultralytics import YOLO
 
-# Import config variables
 from config import MODEL_PATH, DEVICE, NUMBER_OF_CLASSES, CLASS_NAMES
 
 # --- Model Initialization ---
