@@ -24,17 +24,16 @@ LongTo.
 
 Vì nội dung của báo cáo khá dài và có nhiều phần khác nhau, tôi đã chia báo cáo thành các phần riêng biệt để bạn có thể dễ dàng theo dõi. Các phần trong báo cáo bao được đặt ở thư mục `document`, bao gồm:
 
-- `Part-1.md`: Hệ thống nhận diện bản nhạc quang học (OMR)
+- [Part-1.md](./document/Part-1.md): Hệ thống nhận diện bản nhạc quang học (OMR)
 
-- `Part-2.md`: Quá trình tiền xử lý dữ liệu cho bản nhạc
+- [Part-2.md](./document/Part-2.md): Quá trình tiền xử lý dữ liệu cho bản nhạc
 
-- `Part-3.md`: Phân tích và xử lý âm thanh
+- [Part-3.md](./document/Part-3.md): Phân tích và xử lý âm thanh
 
-- `Part-4.md`: Một số kỹ thuật và thư viện được sử dụng trong hệ thống
+- [Part-4.md](./document/Part-4.md): Một số kỹ thuật và thư viện được sử dụng trong hệ thống
 
-- `Full.md`: Tất cả các phần trong báo cáo được gộp lại thành một file duy nhất
+- [Full.md](./document/Full.md): Tất cả các phần trong báo cáo được gộp lại thành một file duy nhất
 
 Một vài file âm thanh mẫu của 2 bản nhạc `Rewrite the stars` và `Your-lie-in-April` được lưu trữ trong thư mục `audio` để bạn có thể nghe thử.
 
-Bạn có thể xem video trình bày sơ lược về hệ thống tại đây: [Video](https://www.youtube.com/)
-
+Bạn có thể xem video trình bày sơ lược về hệ thống tại đây: [https://youtu.be/_i_xELRyrVo](https://youtu.be/_i_xELRyrVo)
